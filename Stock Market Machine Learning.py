@@ -49,7 +49,7 @@ Constructing our Covariates and Splitting Data
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 #Stochastic Oscillator %K and Stochastic %D, which is a Moving Average of %K 
-#Useful for identifying  closing price relative to its price range over time
+#Useful for identifying closing price relative to its price range over time
 
 #Wiliams %R
    #Momentum indicator measuring over/under selling - similar but slightly more focused than %K
@@ -73,7 +73,9 @@ def getKDR(days, data):
     return(kmat, dmat,rmat)
 
 
-#Momentum Indicator
+#Momentum Indicators
+    # Price Rate of Change is a pure momentum oscillator
+    # Momentum is an unnamed indicator, an additive version used in papers
 def getMROC(days,data):
     mom = np.zeros(len(data))
     ROC = np.zeros(len(data))
@@ -110,17 +112,58 @@ def getOBVandIndic(data):
 #Measure of stocks volatility. Its average percent change over a range of days.
 def getVolatility(data,days):
     vol = np.zeros(len(data))
-    
     for i in range(days,len(data)):
         c=0
+        dis[i] = 100*data.Close.iloc[i,]/data.Close.iloc[i-10:i,].mean()
         for j in range(i-days+1,i):
             x1 = data.Close.iloc[j,]
             x0 = data.Close.iloc[j-1,]
             c+= (x1-x0)/x0
-        vol[i] = c/days
+        vol[i] = c*100
     
-    return(vol)
+    return(vol, dis)
+    
+#Moving Average Convergence Divergence
+#Constant indicators, irrespective of time
+def getMACD(data):
+    data = AAPL
+    n = len(data)
+    macd = np.zeros(n)
+    exp12 = np.zeros(n)
+    exp26 = np.zeros(n)
+    
+    mult12 = 2/(13)
+    mult26 = 2/(27)
 
+    sma12 = data.Close.iloc[0:11,].mean()
+    exp12[0] = sma12
+    for i in range(1,n-11):
+        exp12[i] = (data.Close.iloc[11+i,]-exp12[i-1])*mult12 + exp12[i-1]
+    
+    sma26 = data.Close.iloc[0:25,].mean()
+    exp9[0] = sma26
+    for i in range(1,n-25):
+        exp26[i] = (data.Close.iloc[25+i,]-exp26[i-1])*mult26 + exp26[i-1]
+        macd[i] = exp12[i] - exp26[i]
+    
+    return (macd)
+
+#Volatility index: Average True Range
+def ATR(data):
+    ATR = np.zeros(len(data))
+    TR = np.zeros(len(data))
+    for i in range(1,len(data)):
+        x0 = data.High.iloc[i,] - data.Low.iloc[i,]
+        x1 = abs(data.High.iloc[i,]-data.Close.iloc[i-1,])
+        x2 = abs(data.Low.iloc[i,]-data.Close.iloc[i-1,])
+        
+        TR[i] = max(x0,x1,x2)
+    
+    data['TR'] = TR
+    data['ATR'] = data['TR'].ewm(span=14).mean()
+    del data['TR']
+    
+    return(data['ATR'])
 
 #Popular momentum indicator, determining over/under purchasing. That is, if demand is unjustifiably pushing the stock upward
 #This  condition  is  generally  interpreted  as  a  sign  that  the  stock  isovervalued and the price is likely to go down. 
@@ -164,21 +207,23 @@ def getData(ticker,time):
     data = getStock(ticker)
     data['K'],data['D'],data['WilliamsR'] = getKDR(time,data)
     data['Momentum'],data['ROC'] = getMROC(time,data)
-    data['Obv'], data['Output'] = getOBVandIndic(data)
     data['RSI'] = getRSI(data,time)
-    data['Volatility'] = getVolatility(data,time)
+    data['ATR'] = ATR(data)
+    data['Volatility'],data['Disparity'] = getVolatility(data,time)
+    data['MACD'] = getMACD(data)
+    data['Obv'], data['Output'] = getOBVandIndic(data)
     
     #Random spot check for data integrity
-    t1 = int(np.random.uniform(1,len(stock_data)-10,1))
+    t1 = int(np.random.uniform(1,len(data)-10,1))
     print(data.iloc[t1:(t1+10),])
     
     return(data)
 
-AAPL = getData('AMD',5)
+AAPL = getData('AAPL',5)
 SPY = getData('SPY',90)
+MSFT = getData('MSFT',5)
+AMD = getData('AMD',5)
 
-Index_Stock_Data = pd.merge(SPY,AAPL,left_index=True,right_index=True,how='outer')
-    
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 Exploratory Plotting: Moving Averages (5/10/20/90/270)
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
@@ -204,7 +249,53 @@ def Exploratory_Plot(data):
     plt.grid()   
 
 Exploratory_Plot(SPY)
+Exploratory_Plot(AAPL)
+Exploratory_Plot(AMD)
 Exploratory_Plot(MSFT)
+
+'''
+Correlation Plotting
+    - Williams %R and Stochastic %K are perfectly correlated. 
+        - A box in center of somewhat correlated momentum indicators
+        - Will drop %R then, and use K/D instead.
+        
+    - As expected -- High/Low/Open/Close are perfectly correlated and
+                     thus will likely not be good predictors together.
+            
+    - We can see though, that despite having lots of momentum indicators,
+      they aren't all highly correlated. This confirms the literature.
+      There are different momentum indicators that measure slightly
+      different areas of 'momentum', and we want to include them all.
+      
+      Hopefully when included alongside on-balance-volume and a naive
+      volatility idicator, we can build a strong model. 
+      
+    - PROC has far less correlation issues than additive momentum -- will remove
+      
+      Also note: We will have TWO VERSIONS of each of these-
+          - Long term Index Momentum/ROC/etc.
+          - Short term stock Momentum/ROC/etc.
+          
+    - For $SPY Longterm index, ROC/RSI/Disparity are very highly correlated. So we drpo those
+      only for SPY and keep RSI, as it's the most often used in literature. However, WilliamsR
+      is fine, so we'll leave that for SPY.
+'''
+import seaborn as sns
+corrmat2 = AAPL.corr()
+corrmat1 = SPY.corr()
+f, ax = plt.subplots(figsize=(12,10))
+sns.heatmap(corrmat1)
+
+#Drops our unneeded variables
+del AAPL['WilliamsR']
+del AMD['WilliamsR']
+del MSFT['WilliamsR']
+del SPY['ROC']
+del SPY['Disparity']
+
+'''Final Data'''
+Index_Stock_Data = pd.merge(SPY_Dat,AAPL_Dat,left_index=True,right_index=True,how='outer')
+
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 Descriptive Statistics & Preliminary Analysis
@@ -213,8 +304,8 @@ Descriptive Statistics & Preliminary Analysis
 Index_Stock_Data.describe()
 
 #Specific data class
-AAPL.describe()    
-    
+SPY.describe()    
+
     
     
     
