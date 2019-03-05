@@ -112,6 +112,7 @@ def getOBVandIndic(data):
 #Measure of stocks volatility. Its average percent change over a range of days.
 def getVolatility(data,days):
     vol = np.zeros(len(data))
+    dis = np.zeros(len(data))
     for i in range(days,len(data)):
         c=0
         dis[i] = 100*data.Close.iloc[i,]/data.Close.iloc[i-10:i,].mean()
@@ -126,7 +127,6 @@ def getVolatility(data,days):
 #Moving Average Convergence Divergence
 #Constant indicators, irrespective of time
 def getMACD(data):
-    data = AAPL
     n = len(data)
     macd = np.zeros(n)
     exp12 = np.zeros(n)
@@ -141,7 +141,7 @@ def getMACD(data):
         exp12[i] = (data.Close.iloc[11+i,]-exp12[i-1])*mult12 + exp12[i-1]
     
     sma26 = data.Close.iloc[0:25,].mean()
-    exp9[0] = sma26
+    exp26[0] = sma26
     for i in range(1,n-25):
         exp26[i] = (data.Close.iloc[25+i,]-exp26[i-1])*mult26 + exp26[i-1]
         macd[i] = exp12[i] - exp26[i]
@@ -209,7 +209,7 @@ def getData(ticker,time):
     data['Momentum'],data['ROC'] = getMROC(time,data)
     data['RSI'] = getRSI(data,time)
     data['ATR'] = ATR(data)
-    data['Volatility'],data['Disparity'] = getVolatility(data,time)
+    data['Volatility'], data['Disparity'] = getVolatility(data,time)
     data['MACD'] = getMACD(data)
     data['Obv'], data['Output'] = getOBVandIndic(data)
     
@@ -294,22 +294,50 @@ del SPY['ROC']
 del SPY['Disparity']
 
 '''Final Data'''
-Index_Stock_Data = pd.merge(SPY_Dat,AAPL_Dat,left_index=True,right_index=True,how='outer')
+Index_Stock_Data = pd.merge(SPY,AAPL,left_index=True,right_index=True,how='outer')
 
+'''Subsetting'''
+#Trying to ultimately predict the stock motion
+Y = Index_Stock_Data['Output_y']
+
+#Naive covariates
+X_naive = Index_Stock_Data[['High_x','Low_x','Open_x','Close_x','Volume_x',
+                            'High_y','Low_y','Open_y','Close_y','Volume_y']]
+
+#Advanced covariates
+
+
+'''
+Train/Test
+'''
+X_Naive_train = X_naive[(X_naive.index > '2011-01-01') & (X_naive.index < '2016-01-01')]
+X_Naive_test = X_naive[(X_naive.index >= '2016-01-01')]
+
+Y_train = Y[(Y.index>'2011-01-01') & (Y.index<'2016-01-01')]
+Y_test = Y[Y.index>='2016-01-01']
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 Descriptive Statistics & Preliminary Analysis
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 #All data - pull panel wider
 Index_Stock_Data.describe()
+Index_Stock_Data.Close_y.describe()
+
+f, ax = plt.subplots(figsize=(12,10))
+plt.plot(Index_Stock_Data.MACD_x.index, Index_Stock_Data.MACD_x)
+f, ax = plt.subplots(figsize=(12,10))
+plt.plot(SPY.Close.index,SPY.Close)
 
 #Specific data class
 SPY.describe()    
 
     
-    
-    
-    
+'''
+SVM
+'''
+from sklearn import svm
+clf = svm.SVC(kernel='linear')
+clf.fit(X_Naive_train,Y_train)
     
     
     
