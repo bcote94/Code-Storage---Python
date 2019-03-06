@@ -1,11 +1,4 @@
 
-
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-HEADER INFORMATION - TITLES, FORMATS, ETC.
-
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
 import math
 import pandas as pd
 import numpy as np
@@ -24,10 +17,8 @@ pd.set_option('display.max_columns',20)
 pd.set_option('display.expand_frame_repr', False)
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-Data Import fUNCTION
+Data Import Function
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-#Define tickers to download
-#tickers = ['AAPL', 'SPY', 'AMD', 'NFLX']
 
 #Pull seven years of data
 ##70/30 Training split:
@@ -60,7 +51,7 @@ def getData(ticker,time,window):
     return(data)
     
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-Exploratory Plotting: Moving Averages (5/10/20/90/270)
+  Exploratory Plotting: Moving Averages (5/10/20/90/270)
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 def Exploratory_Plot(data):
     tick = data.Close.loc[:,]
@@ -84,7 +75,7 @@ def Exploratory_Plot(data):
     plt.grid()  
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-Constructing our Covariates''''''''''''''''''''''''''''''''
+               Constructing our Covariates
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 #Stochastic Oscillator %K and Stochastic %D, which is a Moving Average of %K 
@@ -296,10 +287,10 @@ def finalData(data,normalize=0):
 '''''''''''''''''''''OPTIMIZATION'''''''''''''''''''''''''''
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-def drawROC():
+def drawROC(model):
 	
 
-	y_prob = tree_model.predict_proba(test)
+	y_prob = model.predict_proba(test)
 	
 	true_probability_estimate = y_prob[:,1]
 	
@@ -322,7 +313,7 @@ def ConfusionMat(pred):
     		truthArray.append(1. if pred[i] == ytest[i] else 0.)
     
     	# print len(truthArray)
-    print(sum(truthArray)/len(ytest))
+    print('The Total Predictive Accuracy Is:',100*sum(truthArray)/len(ytest))
     
     #Prints confusion matrix
     cm = confusion_matrix(ytest,pred)
@@ -351,7 +342,7 @@ Exploratory_Plot(AAPL)
 
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-Correlation Plotting
+"Correlation Plotting
     - Williams %R and Stochastic %K are perfectly correlated. 
         - A box in center of somewhat correlated momentum indicators
         - Will drop %R then, and use K/D instead.
@@ -375,7 +366,7 @@ Correlation Plotting
           
     - For $SPY Longterm index, ROC/RSI/Disparity are very highly correlated. So we drpo those
       only for SPY and keep RSI, as it's the most often used in literature. However, WilliamsR
-      is fine, so we'll leave that for SPY.
+      is fine, so we'll leave that for SPY."
 '''
 import seaborn as sns
 corrmat2 = AAPL.corr()
@@ -390,8 +381,8 @@ del SPY['Disparity']
 
     
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-'''''''''''''''''''''''''SVM''''''''''''''''''''''''''''''''''''
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+                Support Vector Machines
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 #Running SVM
 from sklearn import svm
@@ -404,7 +395,11 @@ def SVM():
     lin_svc = clf.fit(train,ytrain)
 
     pred = lin_svc.predict(test)
+    print('..............................')
+    print('Support Vector Machine Output:')
+    print('..............................')
     print(ConfusionMat(pred))
+
 
 SVM()
 
@@ -412,7 +407,7 @@ SVM()
 '''''''''''''''''
 Ensemble Methods
 ''''''''''''''''''
-    - Note: Literature suggests, using iterative testing over many technology sector stocks, that
+ "   - Note: Literature suggests, using iterative testing over many technology sector stocks, that
             in a long term time-frame, RF and Gradient Boost are statistically similar in their
             performance. However, during lower trading windows (5-30 days) RF's outpaced their
             Gradient Boosted counterparts. For this reason we'll proceed with RF's, as we are
@@ -421,7 +416,7 @@ Ensemble Methods
             This is likely because GBM's are very susceptible to overfitting noisy data. Plus with
             more difficult tuning (3 vs 2). Also, RF's handle highly-correlated data better, which
             is an implicit assumption with stock predictors. Since we have no categorical variables,
-            we don't need to worry about advantages/disadvantages there. 
+            we don't need to worry about advantages/disadvantages there. "
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 from sklearn.metrics import roc_curve,auc, confusion_matrix
@@ -436,16 +431,21 @@ def RandomForest():
     tree_model = RandomForestClassifier(n_estimators=100,criterion="gini",max_depth=None,
                                         bootstrap=True,oob_score=True, random_state=0)
     
+    print('..............................')
+    print('Random Forest Ensemble Output:')
+    print('..............................')
     scores = cross_val_score(tree_model,train,ytrain,cv=5)
     for i, score in enumerate(scores):
         print("Validation Set {} score: {}".format(i, score))
+    print('\n')
     
     tree_model.fit(train,ytrain)
     y_pred = tree_model.predict(test)
+    
     ConfusionMat(y_pred)
+    drawROC(tree_model)
     
 RandomForest()
-
 
 
 '''Maybe eventually do Logistic Regression and compare how bad it is comparatively'''
@@ -460,11 +460,3 @@ RandomForest()
     
     
     
-
-
-
-
-
-
-
-
