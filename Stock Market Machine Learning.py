@@ -24,7 +24,7 @@ pd.set_option('display.max_columns',20)
 pd.set_option('display.expand_frame_repr', False)
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-Data Import
+Data Import fUNCTION
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 #Define tickers to download
 #tickers = ['AAPL', 'SPY', 'AMD', 'NFLX']
@@ -41,11 +41,50 @@ def getStock(ticker):
     x = data.DataReader(ticker,'yahoo', start_date, end_date)
     del x['Adj Close']
     return(x)
+
+#Runs all the above, gathers all vars in one neat package
+def getData(ticker,time,window):
+    data = getStock(ticker)
+    data['K'],data['D'],data['WilliamsR'] = getKDR(time,data)
+    data['Momentum'],data['ROC'] = getMROC(time,data)
+    data['RSI'] = getRSI(data,time)
+    data['ATR'] = ATR(data)
+    data['Volatility'], data['Disparity'] = getVolatility(data,time)
+    data['MACD'] = getMACD(data)
+    data['Obv'], data['Output'] = getOBVandIndic(data,window)
     
+    #Random spot check for data integrity
+    t1 = int(np.random.uniform(1,len(data)-10,1))
+    print(data.iloc[t1:(t1+10),])
+    
+    return(data)
+    
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+Exploratory Plotting: Moving Averages (5/10/20/90/270)
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+def Exploratory_Plot(data):
+    tick = data.Close.loc[:,]
+    
+    # Calculate the 20 and 100 days moving averages of the closing prices
+    monthly_rolling = tick.rolling(window=20).mean()
+    quarter_rolling = tick.rolling(window=90).mean()
+    yearly_rolling = tick.rolling(window=270).mean()
+    
+    fig, ax = plt.subplots(figsize=(16,9))    
+    
+    plt.plot(tick.index, tick)
+    plt.plot(monthly_rolling.index, monthly_rolling, label='Monthly Rolling Average')
+    plt.plot(quarter_rolling.index, quarter_rolling, label='Quarterly Rolling Average')
+    plt.plot(yearly_rolling.index, yearly_rolling, label='Yearly Rolling Average')
+    
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Adjusted closing price ($)')
+    ax.legend()
+    plt.rc('grid',linestyle='dashdot',color='grey')
+    plt.grid()  
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-Constructing our Covariates and Splitting Data
-    We will start with just AAPL data for now
+Constructing our Covariates''''''''''''''''''''''''''''''''
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 #Stochastic Oscillator %K and Stochastic %D, which is a Moving Average of %K 
@@ -105,11 +144,6 @@ def getOBVandIndic(data,window):
             obv[i] = obv[i-1] - data.Volume.iloc[i,]
         else:
             obv[i] = obv[i-1]
-    
-        '''if indic_change >= 0:
-            indic[i] = int(1)
-        if indic_change < 0:
-            indic[i] = int(-1)'''
             
     #What we actually care about: Based on today, what is price in next 5 days?
     for i in range(1,len(data)-window):
@@ -211,56 +245,108 @@ def getRSI(data,days):
     
     return(rsi)
 
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+'''''''''''''Merging Data & Test/Train Split''''''''''''''''
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+    
+def finalData(data,normalize=0):
 
-  
+
+    #Always join in the index data, in this case SPY
+    Index_Stock_Data = pd.merge(SPY,data,left_index=True,right_index=True,how='outer')
+    Index_Stock_Data = Index_Stock_Data[Index_Stock_Data.Output_y!=0]
+    
+    #Cleaning up na and infinite
+    np.any(np.isnan(Index_Stock_Data))
+    np.all(np.isfinite(Index_Stock_Data))
+    
+    Index_Stock_Data = Index_Stock_Data.replace([np.inf,-np.inf],np.nan)
+    Index_Stock_Data = Index_Stock_Data.dropna()
+
+    '''Subsetting'''
+    Y = Index_Stock_Data['Output_y']
+    X = Index_Stock_Data.drop(['Output_y','Output_x','Open_x','High_x','Low_x','Close_x','Volume_x',
+                               'Open_y', 'High_y','Low_y','Close_y','Volume_y'],axis=1)
+    
+    #Spot Fix Data Names
+    X = X.rename(columns={'WilliamsR':'WilliamsR_x','ROC':'ROC_y'})
+    
+    if normalize==1:
+        '''Normalize the Data'''
+        from sklearn import preprocessing    
+        scalar = preprocessing.StandardScaler()
+        scaled_X = scalar.fit_transform(X)
+    
+        X_df = pd.DataFrame(scaled_X, columns=X.columns, index=X.index)
+    else:
+        X_df = X
+
+    '''
+    Train/Test
+    '''
+    X_train = X_df[(X_df.index > '2011-01-01') & (X_df.index < '2016-01-01')]
+    X_test = X_df[(X_df.index >= '2016-01-01')]
+    
+    Y_train = Y[(Y.index>'2011-01-01') & (Y.index<'2016-01-01')]
+    Y_test = Y[Y.index>='2016-01-01']
+    
+    return(X_train,Y_train,X_test,Y_test)
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+'''''''''''''''''''''OPTIMIZATION'''''''''''''''''''''''''''
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-#Runs all the above, gathers all vars in one neat package
-def getData(ticker,time,window):
-    data = getStock(ticker)
-    data['K'],data['D'],data['WilliamsR'] = getKDR(time,data)
-    data['Momentum'],data['ROC'] = getMROC(time,data)
-    data['RSI'] = getRSI(data,time)
-    data['ATR'] = ATR(data)
-    data['Volatility'], data['Disparity'] = getVolatility(data,time)
-    data['MACD'] = getMACD(data)
-    data['Obv'], data['Output'] = getOBVandIndic(data,window)
+def drawROC():
+	
+
+	y_prob = tree_model.predict_proba(test)
+	
+	true_probability_estimate = y_prob[:,1]
+	
+	fpr,tpr,threshold = roc_curve(ytest,true_probability_estimate)
+	area = auc(fpr,tpr)
+	plt.figure()
+	plt.plot(fpr,tpr,linewidth = 2.0,label = "ROC curve (Area= %0.2f)" % area)
+	plt.plot([0,1],[0,1],"r--")
+	plt.xlabel("False Postive Rate")
+	plt.ylabel("True Positive Rate")
+	plt.legend(loc = "lower right")
+	plt.show(block = False)
     
-    #Random spot check for data integrity
-    t1 = int(np.random.uniform(1,len(data)-10,1))
-    print(data.iloc[t1:(t1+10),])
+def ConfusionMat(pred):
     
-    return(data)
+    #Predictions
+    truthArray = []
+    for i in range(len(ytest)):
+    		# print "prediction: %d\tactual: %d" % (predictions[i], Y_test[i])
+    		truthArray.append(1. if pred[i] == ytest[i] else 0.)
+    
+    	# print len(truthArray)
+    print(sum(truthArray)/len(ytest))
+    
+    #Prints confusion matrix
+    cm = confusion_matrix(ytest,pred)
+    spe = cm[0,0]/sum(cm[0,])
+    sen = cm[1,1]/sum(cm[1,])
+    print("Specificity is",100*spe,"% and Sensitivity is",100*sen,"%")
+
+
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+            #DATA PROCESSING BEGINS HERE
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 AAPL = getData('AAPL',5,20)
 SPY = getData('SPY',90,20)
 MSFT = getData('MSFT',5,20)
 AMD = getData('AMD',5,20)
-
-'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-Exploratory Plotting: Moving Averages (5/10/20/90/270)
-'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-def Exploratory_Plot(data):
-    tick = data.Close.loc[:,]
-    
-    # Calculate the 20 and 100 days moving averages of the closing prices
-    monthly_rolling = tick.rolling(window=20).mean()
-    quarter_rolling = tick.rolling(window=90).mean()
-    yearly_rolling = tick.rolling(window=270).mean()
-    
-    fig, ax = plt.subplots(figsize=(16,9))    
-    
-    plt.plot(tick.index, tick)
-    plt.plot(monthly_rolling.index, monthly_rolling, label='Monthly Rolling Average')
-    plt.plot(quarter_rolling.index, quarter_rolling, label='Quarterly Rolling Average')
-    plt.plot(yearly_rolling.index, yearly_rolling, label='Yearly Rolling Average')
-    
-    ax.set_xlabel('Date')
-    ax.set_ylabel('Adjusted closing price ($)')
-    ax.legend()
-    plt.rc('grid',linestyle='dashdot',color='grey')
-    plt.grid()   
-
+ 
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+Plotting
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 Exploratory_Plot(SPY)
 Exploratory_Plot(AAPL)
 Exploratory_Plot(AMD)
@@ -309,55 +395,11 @@ del SPY['Disparity']
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 Final Data''''''''''''''''''''''''''''''''''''''''''''''''''''''
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-def finalData(data):
-
-    del data['WilliamsR']
-    del SPY['ROC']
-    del SPY['Disparity'
-            ]
-    #Always join in the index data, in this case SPY
-    Index_Stock_Data = pd.merge(SPY,data,left_index=True,right_index=True,how='outer')
-    Index_Stock_Data = Index_Stock_Data[Index_Stock_Data.Output_y!=0]
+train, ytrain, test, ytest = finalData(AAPL,1) 
     
-    #Cleaning up na and infinite
-    np.any(np.isnan(Index_Stock_Data))
-    np.all(np.isfinite(Index_Stock_Data))
-    
-    Index_Stock_Data = Index_Stock_Data.replace([np.inf,-np.inf],np.nan)
-    Index_Stock_Data = Index_Stock_Data.dropna()
-
-    '''Subsetting'''
-    Y = Index_Stock_Data['Output_y']
-    X = Index_Stock_Data.drop(['Output_y','Output_x','Open_x','High_x','Low_x','Close_x','Volume_x',
-                               'Open_y', 'High_y','Low_y','Close_y','Volume_y'],axis=1)
-    
-    #Spot Fix Data Names
-    X = X.rename(columns={'WilliamsR':'WilliamsR_x','ROC':'ROC_y'})
-    
-    '''Normalize the Data'''
-    from sklearn import preprocessing    
-    scalar = preprocessing.StandardScaler()
-    scaled_X = scalar.fit_transform(X)
-
-    X_df = pd.DataFrame(scaled_X, columns=X.columns, index=X.index)
-
-    '''
-    Train/Test
-    '''
-    X_train = X_df[(X_df.index > '2011-01-01') & (X_df.index < '2016-01-01')]
-    X_test = X_df[(X_df.index >= '2016-01-01')]
-    
-    Y_train = Y[(Y.index>'2011-01-01') & (Y.index<'2016-01-01')]
-    Y_test = Y[Y.index>='2016-01-01']
-    
-    return(X_train,Y_train,X_test,Y_test)
-    
-train, ytrain, test, ytest = finalData(AAPL)
-    
-    
-'''
-SVM
-'''
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+'''''''''''''''''''''''''SVM''''''''''''''''''''''''''''''''''''
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 #Running SVM
 from sklearn import svm
@@ -367,21 +409,8 @@ clf = svm.SVC(kernel='linear',C=1)
 lin_svc = clf.fit(train,ytrain)
 print(lin_svc)
 
-#Predictions
 pred = lin_svc.predict(test)
-truthArray = []
-for i in range(len(ytest)):
-		# print "prediction: %d\tactual: %d" % (predictions[i], Y_test[i])
-		truthArray.append(1. if pred[i] == ytest[i] else 0.)
-
-	# print len(truthArray)
-print(sum(truthArray)/len(ytest))
-
-#Prints confusion matrix
-cm = confusion_matrix(ytest,pred)
-spe = cm[0,0]/sum(cm[0,])
-sen = cm[1,1]/sum(cm[1,])
-print("Specificity is",100*spe,"% and Sensitivity is",100*sen,"%")
+ConfusionMat(pred)
 
 
 '''''''''''''''''
@@ -399,84 +428,34 @@ Ensemble Methods
             we don't need to worry about advantages/disadvantages there. 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
+from sklearn.metrics import roc_curve,auc, confusion_matrix
+from matplotlib import animation
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import cross_val_score
+from ModelEvaluation import Evaluator
+
+#Wont normalize the data this time, want to have interpretable coefficients maybe
+train, ytrain, test, ytest = finalData(AAPL,0)
+
+tree_model = RandomForestClassifier(n_estimators=100,criterion="gini",max_depth=None,
+                                    bootstrap=True,oob_score=True, random_state=0)
+
+scores = cross_val_score(tree_model,train,ytrain,cv=5)
+for i, score in enumerate(scores):
+    print("Validation Set {} score: {}".format(i, score))
+
+
+y_pred = tree_model.predict(test)
+ConfusionMat(y_pred)
 
 
 
 '''Maybe eventually do Logistic Regression and compare how bad it is comparatively'''
 
 
-'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-Descriptive Statistics & Preliminary Analysis
-'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-#All data - pull panel wider
-Index_Stock_Data.describe()
-Index_Stock_Data.Close_y.describe()
-
-f, ax = plt.subplots(figsize=(12,10))
-plt.plot(Index_Stock_Data.MACD_x.index, Index_Stock_Data.MACD_x)
-f, ax = plt.subplots(figsize=(12,10))
-plt.plot(SPY.Close.index,SPY.Close)
-
-#Specific data class
-SPY.describe()    
+  
 
 
-'''
-def gaussian(x,y,sigma):
-    return np.exp(-la.norm(x-y)**2/(2*sigma**2))
-    
-def SolutionMatrix(c,sigma):
-    omega = np.zeros((len(y_sols),len(y_sols)))
-    for i in range(len(y_sols)):
-        for j in range(len(y_sols)):
-            omega[i,j] = y_sols[i]*y_sols[j]*gaussian(x_vars[i,:],x_vars[j,:],sigma)
-    omega = np.array(omega)
-    
-    #Now building the Solution Matrix itself.
-    yvec = np.array(y_sols)[np.newaxis] #1,2 Element
-   
-    row1 = np.concatenate([[0],y_sols])[np.newaxis] #Top Row
-    row2 = np.concatenate((np.transpose(yvec),(omega+((1/c)*
-                                                 np.identity(len(y_sols))))),axis=1)
-    solA = la.inv(np.vstack((row1,row2))) #The inverse
-    
-    #Setting up the solution vector
-    oneVec = np.vstack(([0],np.transpose(np.ones(len(y_sols))[np.newaxis])))
-
-    #And finding the dot product to get the actual answer vector
-    Res = solA.dot(oneVec)
-
-    #Finally our answers
-    b = Res[0].astype(float)
-    alpha = np.delete(Res,0)
-    return(b, alpha)    
-    
-y_sols = Y_train.values
-x_vars = X_Naive_train.values
-b, alpha = SolutionMatrix(0.1,1)    
-
-def prediction():
-    i,j = 0,0
-    y = np.zeros(len(y_sols))
-    for j in range(len(y_sols)-1):
-        for i in range(len(y_sols)-1):
-            y[j] = y[j] + alpha[i]*y_sols[i]*gaussian(x_vars[j,:],x_vars[i,:],3)
-    y = y+b
-    
-    #This is a neat trick to find the classification rate. Classify each as a
-    #-1/1 based on their sign. Subtract from the 'real' solutions. If correctly
-    #classified, it will result in a 0. If incorrect, a positive 2. Add up and
-    #divide by 2, that is how many incorrectly classified. Subtract from the
-    #length of the solution matrix, divide by total, that's your rate.
-    print(100*(len(y_sols)-np.sum(np.abs((np.where(y<0,-1,1) - y_sols)))/2)/len(y_sols),
-      "% classification rate on data")
-    
-    return(np.where(y<0,-1,1))    
-    
-y_sols = Y_test.values
-x_vars = X_Naive_test.values   
-prediction()
-    
     
     
     
