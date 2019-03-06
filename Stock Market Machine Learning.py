@@ -265,10 +265,10 @@ def finalData(data,normalize=0):
     if normalize==1:
         '''Normalize the Data'''
         from sklearn import preprocessing    
+        
         scalar = preprocessing.StandardScaler()
         scaled_X = scalar.fit_transform(X)
-    
-        X_df = pd.DataFrame(scaled_X, columns=X.columns, index=X.index)
+        X_df = pd.DataFrame(scaled_X, columns=X.columns, index=X.index)  
     else:
         X_df = X
 
