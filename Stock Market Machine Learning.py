@@ -326,12 +326,12 @@ def ConfusionMat(pred):
                 Support Vector Machines
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-def SVM():
+def SVM(stock):
     
     from sklearn import svm
     from sklearn.metrics import confusion_matrix
     
-    train, ytrain, test, ytest = finalData(AAPL,1) 
+    train, ytrain, test, ytest = finalData(stock,1) 
     
     clf = svm.SVC(kernel='linear',C=1)
     lin_svc = clf.fit(train,ytrain)
@@ -354,17 +354,18 @@ Ensemble Methods
             This is likely because GBM's are very susceptible to overfitting noisy data. Also has
             more difficult tuning (3 vs 2). Also, RF's handle highly-correlated data better, which
             is an implicit assumption with stock predictors. Since we have no categorical variables,
-            we don't need to worry about advantages/disadvantages there. "
+            we don't need to worry about advantages/disadvantages there. 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-def RandomForest():
+def RandomForest(stock):
     
     from sklearn.metrics import roc_curve,auc, confusion_matrix
     from matplotlib import animation
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.model_selection import cross_val_score
+    
     #Wont normalize the data this time, want to have interpretable coefficients maybe
-    train, ytrain, test, ytest = finalData(AAPL,0)
+    train, ytrain, test, ytest = finalData(stock,0)
     
     tree_model = RandomForestClassifier(n_estimators=100,criterion="gini",max_depth=None,
                                         bootstrap=True,oob_score=True, random_state=0)
@@ -385,12 +386,16 @@ def RandomForest():
     
 '''Maybe eventually do Logistic Regression and compare how bad it is comparatively'''
 
-def main():
-    AAPL = getData('AAPL',5,20)
+def main(Stock):
+    #Aggressive monthly trading strategy
+    #Stock: 1 week back -- recent data better says literature
+    #Index: 1 quarter back -- older data better says literature
+    Stock = getData(Stock,5,20)
     SPY = getData('SPY',90,20)
     
+    #Context plots - rolling averages for closing prices
     Exploratory_Plot(SPY)
-    Exploratory_Plot(AAPL)
+    Exploratory_Plot(Stock)
     
     '''Correlation Plotting, See Notes Below
     import seaborn as sns
@@ -401,14 +406,14 @@ def main():
     '''
     
     #Drops our unneeded variables
-    del AAPL['WilliamsR']
+    del Stock['WilliamsR']
     del SPY['ROC']
     del SPY['Disparity']
     
-    SVM()
-    RandomForest()
+    SVM(Stock)
+    RandomForest(Stock)
 
-main()
+main('AAPL')
 
   
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
