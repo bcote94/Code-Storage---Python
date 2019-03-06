@@ -349,9 +349,9 @@ Ensemble Methods
             in a long term time-frame, RF and Gradient Boost are statistically similar in their
             performance. However, during lower trading windows (5-30 days) RF's outpaced their
             Gradient Boosted counterparts. For this reason we'll proceed with RF's, as we are
-            doing an aggressive 5-day trading strategy.
+            doing an aggressive 20-day trading strategy.
             
-            This is likely because GBM's are very susceptible to overfitting noisy data. Plus with
+            This is likely because GBM's are very susceptible to overfitting noisy data. Also has
             more difficult tuning (3 vs 2). Also, RF's handle highly-correlated data better, which
             is an implicit assumption with stock predictors. Since we have no categorical variables,
             we don't need to worry about advantages/disadvantages there. "
