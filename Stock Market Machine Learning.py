@@ -341,16 +341,14 @@ def ConfusionMat(pred):
 
 AAPL = getData('AAPL',5,20)
 SPY = getData('SPY',90,20)
-MSFT = getData('MSFT',5,20)
-AMD = getData('AMD',5,20)
+
  
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 Plotting
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 Exploratory_Plot(SPY)
 Exploratory_Plot(AAPL)
-Exploratory_Plot(AMD)
-Exploratory_Plot(MSFT)
+
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 Correlation Plotting
@@ -387,15 +385,9 @@ sns.heatmap(corrmat1)
 
 #Drops our unneeded variables
 del AAPL['WilliamsR']
-del AMD['WilliamsR']
-del MSFT['WilliamsR']
 del SPY['ROC']
 del SPY['Disparity']
 
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-Final Data''''''''''''''''''''''''''''''''''''''''''''''''''''''
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-train, ytrain, test, ytest = finalData(AAPL,1) 
     
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 '''''''''''''''''''''''''SVM''''''''''''''''''''''''''''''''''''
@@ -405,12 +397,16 @@ train, ytrain, test, ytest = finalData(AAPL,1)
 from sklearn import svm
 from sklearn.metrics import confusion_matrix
 
-clf = svm.SVC(kernel='linear',C=1)
-lin_svc = clf.fit(train,ytrain)
-print(lin_svc)
+def SVM():
+    train, ytrain, test, ytest = finalData(AAPL,1) 
+    
+    clf = svm.SVC(kernel='linear',C=1)
+    lin_svc = clf.fit(train,ytrain)
 
-pred = lin_svc.predict(test)
-ConfusionMat(pred)
+    pred = lin_svc.predict(test)
+    print(ConfusionMat(pred))
+
+SVM()
 
 
 '''''''''''''''''
@@ -432,21 +428,23 @@ from sklearn.metrics import roc_curve,auc, confusion_matrix
 from matplotlib import animation
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
-from ModelEvaluation import Evaluator
 
-#Wont normalize the data this time, want to have interpretable coefficients maybe
-train, ytrain, test, ytest = finalData(AAPL,0)
-
-tree_model = RandomForestClassifier(n_estimators=100,criterion="gini",max_depth=None,
-                                    bootstrap=True,oob_score=True, random_state=0)
-
-scores = cross_val_score(tree_model,train,ytrain,cv=5)
-for i, score in enumerate(scores):
-    print("Validation Set {} score: {}".format(i, score))
-
-
-y_pred = tree_model.predict(test)
-ConfusionMat(y_pred)
+def RandomForest():
+    #Wont normalize the data this time, want to have interpretable coefficients maybe
+    train, ytrain, test, ytest = finalData(AAPL,0)
+    
+    tree_model = RandomForestClassifier(n_estimators=100,criterion="gini",max_depth=None,
+                                        bootstrap=True,oob_score=True, random_state=0)
+    
+    scores = cross_val_score(tree_model,train,ytrain,cv=5)
+    for i, score in enumerate(scores):
+        print("Validation Set {} score: {}".format(i, score))
+    
+    tree_model.fit(train,ytrain)
+    y_pred = tree_model.predict(test)
+    ConfusionMat(y_pred)
+    
+RandomForest()
 
 
 
