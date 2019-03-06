@@ -253,7 +253,7 @@ Exploratory_Plot(AAPL)
 Exploratory_Plot(AMD)
 Exploratory_Plot(MSFT)
 
-'''
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 Correlation Plotting
     - Williams %R and Stochastic %K are perfectly correlated. 
         - A box in center of somewhat correlated momentum indicators
@@ -293,28 +293,73 @@ del MSFT['WilliamsR']
 del SPY['ROC']
 del SPY['Disparity']
 
-'''Final Data'''
-Index_Stock_Data = pd.merge(SPY,AAPL,left_index=True,right_index=True,how='outer')
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+Final Data''''''''''''''''''''''''''''''''''''''''''''''''''''''
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+def finalData(data):
 
-'''Subsetting'''
-#Trying to ultimately predict the stock motion
-Y = Index_Stock_Data['Output_y']
+    #Always join in the index data, in this case SPY
+    Index_Stock_Data = pd.merge(SPY,data,left_index=True,right_index=True,how='outer')
+    
+    #Cleaning up na and infinite
+    np.any(np.isnan(Index_Stock_Data))
+    np.all(np.isfinite(Index_Stock_Data))
+    
+    Index_Stock_Data = Index_Stock_Data.replace([np.inf,-np.inf],np.nan)
+    Index_Stock_Data = Index_Stock_Data.dropna()
 
-#Naive covariates
-X_naive = Index_Stock_Data[['High_x','Low_x','Open_x','Close_x','Volume_x',
-                            'High_y','Low_y','Open_y','Close_y','Volume_y']]
+    '''Subsetting'''
+    Output = Index_Stock_Data['Output_y']
+    X = Index_Stock_Data.drop(['Output_y','Output_x','Open_x','High_x','Low_x','Close_x','Volume_x',
+                               'Open_y', 'High_y','Low_y','Close_y','Volume_y'],axis=1)
+    
+    #Spot Fix Data Names
+    X = X.rename(columns={'WilliamsR':'WilliamsR_x','ROC':'ROC_y'})
+    
+    '''Normalize the Data'''
+    from sklearn import preprocessing    
+    scalar = preprocessing.StandardScaler()
+    scaled_X = scalar.fit_transform(X)
 
-#Advanced covariates
+    X_df = pd.DataFrame(scaled_X, columns=X.columns, index=X.index)
 
-
+    '''
+    Train/Test
+    '''
+    X_train = X_df[(X_df.index > '2011-01-01') & (X_df.index < '2016-01-01')]
+    X_test = X_df[(X_df.index >= '2016-01-01')]
+    
+    Y_train = Y[(Y.index>'2011-01-01') & (Y.index<'2016-01-01')]
+    Y_test = Y[Y.index>='2016-01-01']
+    
+    return(X_train,Y_train,X_test,Y_test)
+    
+train, ytrain, test, ytest = finalData(AAPL)
+    
+    
 '''
-Train/Test
+SVM
 '''
-X_Naive_train = X_naive[(X_naive.index > '2011-01-01') & (X_naive.index < '2016-01-01')]
-X_Naive_test = X_naive[(X_naive.index >= '2016-01-01')]
 
-Y_train = Y[(Y.index>'2011-01-01') & (Y.index<'2016-01-01')]
-Y_test = Y[Y.index>='2016-01-01']
+#Running SVM
+from sklearn import svm
+clf = svm.SVC(kernel='linear',C=.01)
+clf.fit(X_train,Y_train)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 Descriptive Statistics & Preliminary Analysis
@@ -331,23 +376,62 @@ plt.plot(SPY.Close.index,SPY.Close)
 #Specific data class
 SPY.describe()    
 
-    
+
 '''
-SVM
-'''
-from sklearn import svm
-clf = svm.SVC(kernel='linear')
-clf.fit(X_Naive_train,Y_train)
+def gaussian(x,y,sigma):
+    return np.exp(-la.norm(x-y)**2/(2*sigma**2))
     
+def SolutionMatrix(c,sigma):
+    omega = np.zeros((len(y_sols),len(y_sols)))
+    for i in range(len(y_sols)):
+        for j in range(len(y_sols)):
+            omega[i,j] = y_sols[i]*y_sols[j]*gaussian(x_vars[i,:],x_vars[j,:],sigma)
+    omega = np.array(omega)
     
+    #Now building the Solution Matrix itself.
+    yvec = np.array(y_sols)[np.newaxis] #1,2 Element
+   
+    row1 = np.concatenate([[0],y_sols])[np.newaxis] #Top Row
+    row2 = np.concatenate((np.transpose(yvec),(omega+((1/c)*
+                                                 np.identity(len(y_sols))))),axis=1)
+    solA = la.inv(np.vstack((row1,row2))) #The inverse
     
+    #Setting up the solution vector
+    oneVec = np.vstack(([0],np.transpose(np.ones(len(y_sols))[np.newaxis])))
+
+    #And finding the dot product to get the actual answer vector
+    Res = solA.dot(oneVec)
+
+    #Finally our answers
+    b = Res[0].astype(float)
+    alpha = np.delete(Res,0)
+    return(b, alpha)    
     
+y_sols = Y_train.values
+x_vars = X_Naive_train.values
+b, alpha = SolutionMatrix(0.1,1)    
+
+def prediction():
+    i,j = 0,0
+    y = np.zeros(len(y_sols))
+    for j in range(len(y_sols)-1):
+        for i in range(len(y_sols)-1):
+            y[j] = y[j] + alpha[i]*y_sols[i]*gaussian(x_vars[j,:],x_vars[i,:],3)
+    y = y+b
     
+    #This is a neat trick to find the classification rate. Classify each as a
+    #-1/1 based on their sign. Subtract from the 'real' solutions. If correctly
+    #classified, it will result in a 0. If incorrect, a positive 2. Add up and
+    #divide by 2, that is how many incorrectly classified. Subtract from the
+    #length of the solution matrix, divide by total, that's your rate.
+    print(100*(len(y_sols)-np.sum(np.abs((np.where(y<0,-1,1) - y_sols)))/2)/len(y_sols),
+      "% classification rate on data")
     
+    return(np.where(y<0,-1,1))    
     
-    
-    
-    
+y_sols = Y_test.values
+x_vars = X_Naive_test.values   
+prediction()
     
     
     
