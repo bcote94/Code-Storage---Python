@@ -321,26 +321,96 @@ def ConfusionMat(pred):
     sen = cm[1,1]/sum(cm[1,])
     print("Specificity is",100*spe,"% and Sensitivity is",100*sen,"%")
 
+    
+''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+                Support Vector Machines
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-            #DATA PROCESSING BEGINS HERE
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+def SVM():
+    
+    from sklearn import svm
+    from sklearn.metrics import confusion_matrix
+    
+    train, ytrain, test, ytest = finalData(AAPL,1) 
+    
+    clf = svm.SVC(kernel='linear',C=1)
+    lin_svc = clf.fit(train,ytrain)
 
-AAPL = getData('AAPL',5,20)
-SPY = getData('SPY',90,20)
+    pred = lin_svc.predict(test)
+    print('..............................')
+    print('Support Vector Machine Output:')
+    print('..............................')
+    print(ConfusionMat(pred))
 
- 
+'''''''''''''''''
+Ensemble Methods
+''''''''''''''''''
+ "   - Note: Literature suggests, using iterative testing over many technology sector stocks, that
+            in a long term time-frame, RF and Gradient Boost are statistically similar in their
+            performance. However, during lower trading windows (5-30 days) RF's outpaced their
+            Gradient Boosted counterparts. For this reason we'll proceed with RF's, as we are
+            doing an aggressive 5-day trading strategy.
+            
+            This is likely because GBM's are very susceptible to overfitting noisy data. Plus with
+            more difficult tuning (3 vs 2). Also, RF's handle highly-correlated data better, which
+            is an implicit assumption with stock predictors. Since we have no categorical variables,
+            we don't need to worry about advantages/disadvantages there. "
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-Plotting
-'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-Exploratory_Plot(SPY)
-Exploratory_Plot(AAPL)
 
+def RandomForest():
+    
+    from sklearn.metrics import roc_curve,auc, confusion_matrix
+    from matplotlib import animation
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.model_selection import cross_val_score
+    #Wont normalize the data this time, want to have interpretable coefficients maybe
+    train, ytrain, test, ytest = finalData(AAPL,0)
+    
+    tree_model = RandomForestClassifier(n_estimators=100,criterion="gini",max_depth=None,
+                                        bootstrap=True,oob_score=True, random_state=0)
+    
+    print('..............................')
+    print('Random Forest Ensemble Output:')
+    print('..............................')
+    scores = cross_val_score(tree_model,train,ytrain,cv=5)
+    for i, score in enumerate(scores):
+        print("Validation Set {} score: {}".format(i, score))
+    print('\n')
+    
+    tree_model.fit(train,ytrain)
+    y_pred = tree_model.predict(test)
+    
+    ConfusionMat(y_pred)
+    drawROC(tree_model)
+    
+'''Maybe eventually do Logistic Regression and compare how bad it is comparatively'''
 
+def main():
+    AAPL = getData('AAPL',5,20)
+    SPY = getData('SPY',90,20)
+    
+    Exploratory_Plot(SPY)
+    Exploratory_Plot(AAPL)
+    
+    '''Correlation Plotting, See Notes Below
+    import seaborn as sns
+    corrmat2 = AAPL.corr()
+    corrmat1 = SPY.corr()
+    f, ax = plt.subplots(figsize=(12,10))
+    sns.heatmap(corrmat1)
+    '''
+    
+    #Drops our unneeded variables
+    del AAPL['WilliamsR']
+    del SPY['ROC']
+    del SPY['Disparity']
+    
+    SVM()
+    RandomForest()
+
+main()
+
+  
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 "Correlation Plotting
     - Williams %R and Stochastic %K are perfectly correlated. 
@@ -368,91 +438,6 @@ Exploratory_Plot(AAPL)
       only for SPY and keep RSI, as it's the most often used in literature. However, WilliamsR
       is fine, so we'll leave that for SPY."
 '''
-import seaborn as sns
-corrmat2 = AAPL.corr()
-corrmat1 = SPY.corr()
-f, ax = plt.subplots(figsize=(12,10))
-sns.heatmap(corrmat1)
-
-#Drops our unneeded variables
-del AAPL['WilliamsR']
-del SPY['ROC']
-del SPY['Disparity']
-
-    
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-                Support Vector Machines
-'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-#Running SVM
-from sklearn import svm
-from sklearn.metrics import confusion_matrix
-
-def SVM():
-    train, ytrain, test, ytest = finalData(AAPL,1) 
-    
-    clf = svm.SVC(kernel='linear',C=1)
-    lin_svc = clf.fit(train,ytrain)
-
-    pred = lin_svc.predict(test)
-    print('..............................')
-    print('Support Vector Machine Output:')
-    print('..............................')
-    print(ConfusionMat(pred))
-
-
-SVM()
-
-
-'''''''''''''''''
-Ensemble Methods
-''''''''''''''''''
- "   - Note: Literature suggests, using iterative testing over many technology sector stocks, that
-            in a long term time-frame, RF and Gradient Boost are statistically similar in their
-            performance. However, during lower trading windows (5-30 days) RF's outpaced their
-            Gradient Boosted counterparts. For this reason we'll proceed with RF's, as we are
-            doing an aggressive 5-day trading strategy.
-            
-            This is likely because GBM's are very susceptible to overfitting noisy data. Plus with
-            more difficult tuning (3 vs 2). Also, RF's handle highly-correlated data better, which
-            is an implicit assumption with stock predictors. Since we have no categorical variables,
-            we don't need to worry about advantages/disadvantages there. "
-'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-from sklearn.metrics import roc_curve,auc, confusion_matrix
-from matplotlib import animation
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import cross_val_score
-
-def RandomForest():
-    #Wont normalize the data this time, want to have interpretable coefficients maybe
-    train, ytrain, test, ytest = finalData(AAPL,0)
-    
-    tree_model = RandomForestClassifier(n_estimators=100,criterion="gini",max_depth=None,
-                                        bootstrap=True,oob_score=True, random_state=0)
-    
-    print('..............................')
-    print('Random Forest Ensemble Output:')
-    print('..............................')
-    scores = cross_val_score(tree_model,train,ytrain,cv=5)
-    for i, score in enumerate(scores):
-        print("Validation Set {} score: {}".format(i, score))
-    print('\n')
-    
-    tree_model.fit(train,ytrain)
-    y_pred = tree_model.predict(test)
-    
-    ConfusionMat(y_pred)
-    drawROC(tree_model)
-    
-RandomForest()
-
-
-'''Maybe eventually do Logistic Regression and compare how bad it is comparatively'''
-
-
-  
-
 
     
     
