@@ -87,7 +87,8 @@ def getMROC(days,data):
     
 #Current On_Balance Volume
 #On days where price goes up, cumulatively adds volume, and vice versa
-def getOBVandIndic(data):
+    #Indicator is based on weekly change of price. Each day is too variable.
+def getOBVandIndic(data,window):
     indic = np.zeros(len(data))
     obv = np.zeros(len(data))
     obv[0] = data.Volume.iloc[0]
@@ -96,19 +97,31 @@ def getOBVandIndic(data):
         x0 = data.Close.iloc[i-1,]
         x1 = data.Close.iloc[i,]
         change = x1 - x0
+        indic_change = x1 - data.Close.iloc[i-5,]
         
         if change > 0:
             obv[i] = obv[i-1] + data.Volume.iloc[i,]
-            indic[i] = int(1)
         elif change < 0:
             obv[i] = obv[i-1] - data.Volume.iloc[i,]
-            indic[i] = int(-1)
         else:
             obv[i] = obv[i-1]
+    
+        '''if indic_change >= 0:
             indic[i] = int(1)
+        if indic_change < 0:
+            indic[i] = int(-1)'''
+            
+    #What we actually care about: Based on today, what is price in next 5 days?
+    for i in range(1,len(data)-window):
+        if (data.Close.iloc[i+window,] - data.Close.iloc[i,]) >= 0:
+            indic[i] = 1
+        if (data.Close.iloc[i+window,] - data.Close.iloc[i,]) < 0:
+            indic[i] = -1
     
     return(obv, indic)
     
+
+
 #Measure of stocks volatility. Its average percent change over a range of days.
 def getVolatility(data,days):
     vol = np.zeros(len(data))
@@ -203,7 +216,7 @@ def getRSI(data,days):
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 #Runs all the above, gathers all vars in one neat package
-def getData(ticker,time):
+def getData(ticker,time,window):
     data = getStock(ticker)
     data['K'],data['D'],data['WilliamsR'] = getKDR(time,data)
     data['Momentum'],data['ROC'] = getMROC(time,data)
@@ -211,7 +224,7 @@ def getData(ticker,time):
     data['ATR'] = ATR(data)
     data['Volatility'], data['Disparity'] = getVolatility(data,time)
     data['MACD'] = getMACD(data)
-    data['Obv'], data['Output'] = getOBVandIndic(data)
+    data['Obv'], data['Output'] = getOBVandIndic(data,window)
     
     #Random spot check for data integrity
     t1 = int(np.random.uniform(1,len(data)-10,1))
@@ -219,10 +232,10 @@ def getData(ticker,time):
     
     return(data)
 
-AAPL = getData('AAPL',5)
-SPY = getData('SPY',90)
-MSFT = getData('MSFT',5)
-AMD = getData('AMD',5)
+AAPL = getData('AAPL',5,20)
+SPY = getData('SPY',90,20)
+MSFT = getData('MSFT',5,20)
+AMD = getData('AMD',5,20)
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 Exploratory Plotting: Moving Averages (5/10/20/90/270)
@@ -298,8 +311,13 @@ Final Data''''''''''''''''''''''''''''''''''''''''''''''''''''''
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 def finalData(data):
 
+    del data['WilliamsR']
+    del SPY['ROC']
+    del SPY['Disparity'
+            ]
     #Always join in the index data, in this case SPY
     Index_Stock_Data = pd.merge(SPY,data,left_index=True,right_index=True,how='outer')
+    Index_Stock_Data = Index_Stock_Data[Index_Stock_Data.Output_y!=0]
     
     #Cleaning up na and infinite
     np.any(np.isnan(Index_Stock_Data))
@@ -309,7 +327,7 @@ def finalData(data):
     Index_Stock_Data = Index_Stock_Data.dropna()
 
     '''Subsetting'''
-    Output = Index_Stock_Data['Output_y']
+    Y = Index_Stock_Data['Output_y']
     X = Index_Stock_Data.drop(['Output_y','Output_x','Open_x','High_x','Low_x','Close_x','Volume_x',
                                'Open_y', 'High_y','Low_y','Close_y','Volume_y'],axis=1)
     
@@ -343,22 +361,48 @@ SVM
 
 #Running SVM
 from sklearn import svm
-clf = svm.SVC(kernel='linear',C=.01)
-clf.fit(X_train,Y_train)
+from sklearn.metrics import confusion_matrix
+
+clf = svm.SVC(kernel='linear',C=1)
+lin_svc = clf.fit(train,ytrain)
+print(lin_svc)
+
+#Predictions
+pred = lin_svc.predict(test)
+truthArray = []
+for i in range(len(ytest)):
+		# print "prediction: %d\tactual: %d" % (predictions[i], Y_test[i])
+		truthArray.append(1. if pred[i] == ytest[i] else 0.)
+
+	# print len(truthArray)
+print(sum(truthArray)/len(ytest))
+
+#Prints confusion matrix
+cm = confusion_matrix(ytest,pred)
+spe = cm[0,0]/sum(cm[0,])
+sen = cm[1,1]/sum(cm[1,])
+print("Specificity is",100*spe,"% and Sensitivity is",100*sen,"%")
+
+
+'''''''''''''''''
+Ensemble Methods
+''''''''''''''''''
+    - Note: Literature suggests, using iterative testing over many technology sector stocks, that
+            in a long term time-frame, RF and Gradient Boost are statistically similar in their
+            performance. However, during lower trading windows (5-30 days) RF's outpaced their
+            Gradient Boosted counterparts. For this reason we'll proceed with RF's, as we are
+            doing an aggressive 5-day trading strategy.
+            
+            This is likely because GBM's are very susceptible to overfitting noisy data. Plus with
+            more difficult tuning (3 vs 2). Also, RF's handle highly-correlated data better, which
+            is an implicit assumption with stock predictors. Since we have no categorical variables,
+            we don't need to worry about advantages/disadvantages there. 
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 
 
 
-
-
-
-
-
-
-
-
-
-
+'''Maybe eventually do Logistic Regression and compare how bad it is comparatively'''
 
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
