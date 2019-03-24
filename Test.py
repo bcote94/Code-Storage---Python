@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun Mar 24 13:56:54 2019
+
+@author: Brian Cote
+"""
 
 import math
 import pandas as pd
@@ -134,6 +140,7 @@ def getOBVandIndic(data,window):
         x0 = data.Close.iloc[i-1,]
         x1 = data.Close.iloc[i,]
         change = x1 - x0
+        indic_change = x1 - data.Close.iloc[i-5,]
         
         if change > 0:
             obv[i] = obv[i-1] + data.Volume.iloc[i,]
@@ -194,6 +201,7 @@ def getMACD(data):
 
 #Volatility index: Average True Range
 def ATR(data):
+    ATR = np.zeros(len(data))
     TR = np.zeros(len(data))
     for i in range(1,len(data)):
         x0 = data.High.iloc[i,] - data.Low.iloc[i,]
@@ -245,7 +253,7 @@ def getRSI(data,days):
 '''''''''''''Merging Data & Test/Train Split''''''''''''''''
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     
-def finalData(SPY,data,normalize=0):
+def finalData(data,normalize=0):
 
 
     #Always join in the index data, in this case SPY
@@ -292,8 +300,24 @@ def finalData(SPY,data,normalize=0):
 '''''''''''''''''''''OPTIMIZATION'''''''''''''''''''''''''''
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
+def drawROC(model):
+	
 
-def ConfusionMat(pred,ytest):
+	y_prob = model.predict_proba(test)
+	
+	true_probability_estimate = y_prob[:,1]
+	
+	fpr,tpr,threshold = roc_curve(ytest,true_probability_estimate)
+	area = auc(fpr,tpr)
+	plt.figure()
+	plt.plot(fpr,tpr,linewidth = 2.0,label = "ROC curve (Area= %0.2f)" % area)
+	plt.plot([0,1],[0,1],"r--")
+	plt.xlabel("False Postive Rate")
+	plt.ylabel("True Positive Rate")
+	plt.legend(loc = "lower right")
+	plt.show(block = False)
+    
+def ConfusionMat(pred):
     
     #Predictions
     truthArray = []
@@ -309,31 +333,15 @@ def ConfusionMat(pred,ytest):
     spe = cm[0,0]/sum(cm[0,])
     sen = cm[1,1]/sum(cm[1,])
     print("Specificity is",100*spe,"% and Sensitivity is",100*sen,"%")
-    
-    
-def DrawRoc(model,test,ytest):
-    y_prob = model.predict_proba(test)
-    true_probability_estimate = y_prob[:,1]
-    
-    fpr,tpr,threshold = roc_curve(ytest,true_probability_estimate)
-    area = auc(fpr,tpr)
-    plt.figure()
-    plt.plot(fpr,tpr,linewidth = 2.0,label = "ROC curve (Area= %0.2f)" % area)
-    plt.plot([0,1],[0,1],"r--")
-    plt.xlabel("False Postive Rate")
-    plt.ylabel("True Positive Rate")
-    plt.legend(loc = "lower right")
-    plt.show(block = False)
 
     
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
                 Support Vector Machines
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-def SVM(finaldata):
+def SVM(stock,SPY):
 
-    
-    train, ytrain, test, ytest = finaldata
+    train, ytrain, test, ytest = finalData(stock,1) 
     
     clf = svm.SVC(kernel='linear',C=1)
     lin_svc = clf.fit(train,ytrain)
@@ -342,7 +350,7 @@ def SVM(finaldata):
     print('..............................')
     print('Support Vector Machine Output:')
     print('..............................')
-    print(ConfusionMat(pred,ytest))
+    print(ConfusionMat(pred))
 
 '''''''''''''''''
 Ensemble Methods
@@ -359,13 +367,13 @@ Ensemble Methods
             we don't need to worry about advantages/disadvantages there. 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-def RandomForest(finaldata):
-
+def RandomForest(stock,SPY):
     
     #Wont normalize the data this time, want to have interpretable coefficients maybe
-    train, ytrain, test, ytest = finaldata
+    train, ytrain, test, ytest = finalData(stock,0)
     
-    tree_model = RandomForestClassifier(n_estimators=100,criterion="gini",max_depth=None,bootstrap=True,oob_score=True, random_state=0)
+    tree_model = RandomForestClassifier(n_estimators=100,criterion="gini",max_depth=None,
+                                        bootstrap=True,oob_score=True, random_state=0)
     
     print('..............................')
     print('Random Forest Ensemble Output:')
@@ -378,8 +386,8 @@ def RandomForest(finaldata):
     tree_model.fit(train,ytrain)
     y_pred = tree_model.predict(test)
     
-    ConfusionMat(y_pred,ytest)
-    DrawRoc(tree_model,test,ytest)
+    ConfusionMat(y_pred)
+    drawROC(tree_model)
     
 '''Maybe eventually do Logistic Regression and compare how bad it is comparatively'''
 
@@ -387,7 +395,6 @@ def main(Stock):
     #Aggressive monthly trading strategy
     #Stock: 1 week back -- recent data better says literature
     #Index: 1 quarter back -- older data better says literature
-    Stock = 'AAPL'
     Stock = getData(Stock,5,20)
     SPY = getData('SPY',90,20)
     
@@ -408,14 +415,11 @@ def main(Stock):
     del SPY['ROC']
     del SPY['Disparity']
     
-    #Get Data for different methods
-    NormalizedData = finalData(SPY,Stock,1) 
-    RegularData = finalData(SPY,Stock,0)
-    
-    SVM(NormalizedData)
-    RandomForest(RegularData)
+    SVM(Stock,SPY)
+    RandomForest(Stock,SPY)
 
 main('AAPL')
+
   
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 "Correlation Plotting
@@ -443,11 +447,5 @@ main('AAPL')
     - For $SPY Longterm index, ROC/RSI/Disparity are very highly correlated. So we drpo those
       only for SPY and keep RSI, as it's the most often used in literature. However, WilliamsR
       is fine, so we'll leave that for SPY."
-'''
-
-    
-    
-    
-    
-    
-    
+      '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+      
