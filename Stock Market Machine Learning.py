@@ -3,7 +3,7 @@ import math
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from pandas_datareader import data
+from pandas_datareader import dat
 import statsmodels.api as sm
 import scipy.stats as sc
 from scipy.stats import uniform
@@ -17,6 +17,8 @@ from sklearn.metrics import roc_curve,auc, confusion_matrix
 from matplotlib import animation
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import RandomizedSearchCV
 
 #Change Print Format
 pd.set_option('display.float_format', '{:.2f}'.format)
@@ -35,8 +37,7 @@ start_date = '2011-01-01'
 end_date = '2018-12-31'
 
 def getStock(ticker):
-    from pandas_datareader import data
-    x = data.DataReader(ticker,'yahoo', start_date, end_date)
+    x = dat.DataReader(ticker,'yahoo', start_date, end_date)
     del x['Adj Close']
     return(x)
 
@@ -308,7 +309,7 @@ def ConfusionMat(pred,ytest):
     cm = confusion_matrix(ytest,pred)
     spe = cm[0,0]/sum(cm[0,])
     sen = cm[1,1]/sum(cm[1,])
-    print("Specificity is",100*spe,"% and Sensitivity is",100*sen,"%")
+    print("Sensitivity is",100*spe,"% and Specificity is",100*sen,"%")
     
     
 def DrawRoc(model,test,ytest):
@@ -343,6 +344,26 @@ def SVM(finaldata):
     print('Support Vector Machine Output:')
     print('..............................')
     print(ConfusionMat(pred,ytest))
+    
+def svc_param_selection(finaldata, nfolds):
+    train, ytrain, test, ytest = finaldata
+    
+    Cs = [0.001, 0.01, 0.1, 1, 10]
+    gammas = [0.001, 0.01, 0.1, 1]
+    param_grid = {'C': Cs, 'gamma' : gammas}
+    
+    grid_search = GridSearchCV(svm.SVC(kernel='rbf'), param_grid, cv=nfolds)
+    grid_search.fit(train,ytrain)
+    grid_search.best_params_
+    
+    pred = grid_search.predict(test)
+    print('..............................')
+    print('Tuned Support Vector Machine Output:')
+    print('..............................')
+    print(ConfusionMat(pred,ytest))
+    
+    return(pred)
+    
 
 '''''''''''''''''
 Ensemble Methods
@@ -359,13 +380,70 @@ Ensemble Methods
             we don't need to worry about advantages/disadvantages there. 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-def RandomForest(finaldata):
-
+def gridSearch():
+    # Number of trees in random forest
+    n_estimators = [int(x) for x in np.linspace(start = 100, stop = 2000, num = 10)]
+    # Number of features to consider at every split
+    max_features = ['auto', 'sqrt']
+    # Maximum number of levels in tree
+    max_depth = [int(x) for x in np.linspace(2, 20, num = 1)]
+    max_depth.append(None)
+    # Minimum number of samples required to split a node
+    min_samples_split = [5, 10, 15]
+    # Minimum number of samples required at each leaf node
+    min_samples_leaf = [1,2,5,10]
+    # Method of selecting samples for training each tree
+    bootstrap = [True, False]
     
-    #Wont normalize the data this time, want to have interpretable coefficients maybe
+    random_grid = {'n_estimators': n_estimators,
+               'max_features': max_features,
+               'max_depth': max_depth,
+               'min_samples_split': min_samples_split,
+               'min_samples_leaf': min_samples_leaf,
+               'bootstrap': bootstrap}
+    return (random_grid)
+
+def randomForestTune(finaldata):
     train, ytrain, test, ytest = finaldata
     
-    tree_model = RandomForestClassifier(n_estimators=100,criterion="gini",max_depth=None,bootstrap=True,oob_score=True, random_state=0)
+    rg = gridSearch()
+    rf = RandomForestClassifier()
+    
+        
+    rf_random = RandomizedSearchCV(estimator = rf, param_distributions = rg, 
+                                   n_iter = 100, cv = 3, verbose=2, random_state=42, n_jobs = -1)
+    
+    rf_random.fit(train, ytrain)
+    print('Best Estimators Through Random Grid Search:')
+    print(rf_random.best_params_)
+    print('\n')
+    print('..............................')
+    print('Tuned Random Forest Ensemble Output:')
+    print('..............................')
+    
+    best_random = rf_random.best_estimator_
+    scores = cross_val_score(best_random,train,ytrain,cv=5)
+    for i, score in enumerate(scores):
+        print("Validation Set {} score: {}".format(i, score))
+    print('\n')
+    
+    pred = best_random.predict(test)
+    ConfusionMat(pred,ytest)
+    DrawRoc(best_random,test)
+    
+    return(pred,ytest)
+    
+def RandomForest(finaldata):
+
+    #Wont normalize the data this time, want to have interpretable coefficients maybe
+    train, ytrain, test, ytest = finaldata
+
+    tree_model = RandomForestClassifier(n_estimators=100,
+                                        criterion="gini",
+                                        max_depth=None,
+                                        bootstrap=True,
+                                        oob_score=True,
+                                        random_state=0)
     
     print('..............................')
     print('Random Forest Ensemble Output:')
@@ -380,20 +458,19 @@ def RandomForest(finaldata):
     
     ConfusionMat(y_pred,ytest)
     DrawRoc(tree_model,test,ytest)
-    
+
 '''Maybe eventually do Logistic Regression and compare how bad it is comparatively'''
 
-def main(Stock):
+def prePlotting(Stock):
     #Aggressive monthly trading strategy
     #Stock: 1 week back -- recent data better says literature
     #Index: 1 quarter back -- older data better says literature
-    Stock = 'AAPL'
     Stock = getData(Stock,5,20)
     SPY = getData('SPY',90,20)
     
     #Context plots - rolling averages for closing prices
     Exploratory_Plot(SPY)
-    Exploratory_Plot(Stock)
+    Exploratory_Plot(Stock)   
     
     '''Correlation Plotting, See Notes Below
     import seaborn as sns
@@ -402,21 +479,65 @@ def main(Stock):
     f, ax = plt.subplots(figsize=(12,10))
     sns.heatmap(corrmat1)
     '''
-    
     #Drops our unneeded variables
     del Stock['WilliamsR']
     del SPY['ROC']
     del SPY['Disparity']
     
+    return(Stock, SPY)
+
+def main(Stock, SPY):
+    
     #Get Data for different methods
     NormalizedData = finalData(SPY,Stock,1) 
     RegularData = finalData(SPY,Stock,0)
     
+    #Base SVM
     SVM(NormalizedData)
+    #Tuned SVM
+    svm_pred = svc_param_selection(NormalizedData, 5)
+    #Base Case
     RandomForest(RegularData)
+    #Tune Case via Grid Search
+    rf_pred,ytest = randomForestTune(RegularData)
+    return(rf_pred, svm_pred)
+    
+def tradingStrategy(pred, Stock):
+    
+    #x and y coords appropriately
+    x = [Stock.index[i] for i in range(0,len(Stock),20)]
+    y = [Stock.Close[i] for i in range(0,len(Stock),20)]
+    
+    y_pred = [pred[i] for i in range(0,len(pred),20)]
+    
+    #Color Mapping
+    colorMap = {-1.0:"r",1.0:"b",0.0:"y"}
+    c = [colorMap[y_pred[i]] for i in range(len(y_pred))]
+    c.append('r')
+    
+    #Setting up plot and Closing Prices
+    fig, ax = plt.subplots(figsize=(16,9))  
+    plt.plot()
+    plt.plot(Stock.Close, c = "g")
+    
+    #Scatter
+    plt.scatter(x,y, c = c, s=55)
+    
+    #Labels
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Adjusted closing price ($)')
+    ax.legend()
+    plt.rc('grid',linestyle='dashdot',color='grey')
+    plt.grid()  
 
-main('AAPL')
-  
+    
+Stock, SPY = prePlotting('AAPL')
+rf_pred, svm_pred = main(Stock,SPY)
+
+testStock = Stock[Stock.index >= '2016-01-01']
+tradingStrategy(rf_pred,testStock)
+
+
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 "Correlation Plotting
     - Williams %R and Stochastic %K are perfectly correlated. 
