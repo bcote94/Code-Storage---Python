@@ -3,7 +3,7 @@ import math
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from pandas_datareader import dat
+from pandas_datareader import data as dat
 import statsmodels.api as sm
 import scipy.stats as sc
 from scipy.stats import uniform
@@ -536,6 +536,8 @@ rf_pred, svm_pred = main(Stock,SPY)
 
 testStock = Stock[Stock.index >= '2016-01-01']
 tradingStrategy(rf_pred,testStock)
+
+Stock.describe()
 
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
