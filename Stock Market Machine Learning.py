@@ -112,14 +112,14 @@ def getKDR(days, data):
 
 
 #Momentum Indicators
-    # Price Rate of Change is a pure momentum oscillator
+    # Price Rate of Change is a pure volatility oscillator
     # Momentum is an unnamed indicator, an additive version used in papers
 def getMROC(days,data):
     mom = np.zeros(len(data))
     ROC = np.zeros(len(data))
     for i in range(days,len(data)):
         mom[i] = data.Close.iloc[i,] - data.Close.iloc[i-days,]
-        ROC[i] = data.Close.iloc[i,]/data.Close.iloc[i-days,] * 100
+        ROC[i] = (data.Close.iloc[i,]-data.Close.iloc[i-days,])/data.Close.iloc[i-days,]
         
     return(mom, ROC)
     
@@ -165,7 +165,7 @@ def getVolatility(data,days):
             x1 = data.Close.iloc[j,]
             x0 = data.Close.iloc[j-1,]
             c+= (x1-x0)/x0
-        vol[i] = c*100
+        vol[i] = 100*c/days
     
     return(vol, dis)
     
@@ -429,7 +429,7 @@ def randomForestTune(finaldata):
     
     pred = best_random.predict(test)
     ConfusionMat(pred,ytest)
-    DrawRoc(best_random,test)
+    DrawRoc(best_random,test, ytest)
     
     return(pred,ytest)
     
@@ -472,13 +472,13 @@ def prePlotting(Stock):
     Exploratory_Plot(SPY)
     Exploratory_Plot(Stock)   
     
-    '''Correlation Plotting, See Notes Below
+    
     import seaborn as sns
-    corrmat2 = AAPL.corr()
     corrmat1 = SPY.corr()
     f, ax = plt.subplots(figsize=(12,10))
     sns.heatmap(corrmat1)
-    '''
+ 
+    
     #Drops our unneeded variables
     del Stock['WilliamsR']
     del SPY['ROC']
@@ -537,7 +537,13 @@ rf_pred, svm_pred = main(Stock,SPY)
 testStock = Stock[Stock.index >= '2016-01-01']
 tradingStrategy(rf_pred,testStock)
 
-Stock.describe()
+Stock, SPY = prePlotting('AMD')
+rf_pred, svm_pred = main(Stock,SPY)
+
+testStock = Stock[Stock.index >= '2016-01-01']
+tradingStrategy(rf_pred,testStock)
+
+
 
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
