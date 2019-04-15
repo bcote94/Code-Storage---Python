@@ -1,3 +1,31 @@
+'''''''''''''     !!!   README   !!!     ''''''''''''''''
+
+This is intended to be eventually turned into a one
+unified package that can be run blind. It is still in
+a beta phase. This is just an experiment. Do not trade
+real money with this unless you know what you're doing!
+
+Currently it can experimentally be 'run blind'. Run the
+program and, at the bottom, un-comment the function call
+for main() of which ticker you would like to investigate.
+
+Runtime Calculations:
+    Average Runtime:    5 min 
+    Time Frame:         8 years
+    Processor:          i5-4590 @3.30GHz (4CPU)
+    RAM:                8192MB, DDR3
+
+TODO (Post-School Project, Personal Work):
+    1. Add modular start/end dates
+    2. Test on paper trading with advanced buying strategies
+    3. Integrate with the API of selected trading platforms
+        3a. Web-Code to automate funds from bank to trading platform
+        3b. Initiate and close trades
+    4. Investigate shorter time window trading strategies
+        4a. Day trade SVC's?
+
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+
 
 import math
 import pandas as pd
@@ -25,16 +53,13 @@ pd.set_option('display.float_format', '{:.2f}'.format)
 pd.set_option('display.max_columns',20)
 pd.set_option('display.expand_frame_repr', False)
 
+start_date = '2011-01-01'
+end_date = '2018-12-31'
+
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 Data Import Function
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
-#Pull seven years of data
-##70/30 Training split:
-###2011-2016: Train
-###2017-2018: Test
-start_date = '2011-01-01'
-end_date = '2018-12-31'
 
 def getStock(ticker):
     x = dat.DataReader(ticker,'yahoo', start_date, end_date)
@@ -64,7 +89,7 @@ def getData(ticker,time,window):
 def Exploratory_Plot(data):
     tick = data.Close.loc[:,]
     
-    # Calculate the 20 and 100 days moving averages of the closing prices
+    # Calculate the moving averages of the closing prices
     monthly_rolling = tick.rolling(window=20).mean()
     quarter_rolling = tick.rolling(window=90).mean()
     yearly_rolling = tick.rolling(window=270).mean()
@@ -459,8 +484,6 @@ def RandomForest(finaldata):
     ConfusionMat(y_pred,ytest)
     DrawRoc(tree_model,test,ytest)
 
-'''Maybe eventually do Logistic Regression and compare how bad it is comparatively'''
-
 def prePlotting(Stock):
     #Aggressive monthly trading strategy
     #Stock: 1 week back -- recent data better says literature
@@ -558,48 +581,17 @@ def main(ticker):
             
     dca_profits = sum([sum(profit_mat[36,1]-profit_mat[i,1]) for i in range(0,len(profit_mat))])
     
+    #Result: ML method outperforms buy-and-hold for sideways/downward stocks
     print(profits)
     print(dca_profits)
     
     
 
-main('AAPL')
-main('AMD')
-main('T')
+#main('AAPL')
+#main('AMD')
+#main('T')
 
 
-
-'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-"Correlation Plotting
-    - Williams %R and Stochastic %K are perfectly correlated. 
-        - A box in center of somewhat correlated momentum indicators
-        - Will drop %R then, and use K/D instead.
-        
-    - As expected -- High/Low/Open/Close are perfectly correlated and
-                     thus will likely not be good predictors together.
-            
-    - We can see though, that despite having lots of momentum indicators,
-      they aren't all highly correlated. This confirms the literature.
-      There are different momentum indicators that measure slightly
-      different areas of 'momentum', and we want to include them all.
-      
-      Hopefully when included alongside on-balance-volume and a naive
-      volatility idicator, we can build a strong model. 
-      
-    - PROC has far less correlation issues than additive momentum -- will remove
-      
-      Also note: We will have TWO VERSIONS of each of these-
-          - Long term Index Momentum/ROC/etc.
-          - Short term stock Momentum/ROC/etc.
-          
-    - For $SPY Longterm index, ROC/RSI/Disparity are very highly correlated. So we drpo those
-      only for SPY and keep RSI, as it's the most often used in literature. However, WilliamsR
-      is fine, so we'll leave that for SPY."
-'''
-
-    
-    
-    
     
     
     
