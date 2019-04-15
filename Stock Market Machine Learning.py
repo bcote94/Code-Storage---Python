@@ -9,6 +9,9 @@ Currently it can experimentally be 'run blind'. Run the
 program and, at the bottom, un-comment the function call
 for main() of which ticker you would like to investigate.
 
+Github:
+    https://github.com/bcote94/Code-Storage---Python 
+
 Runtime Calculations:
     Average Runtime:    5 min 
     Time Frame:         8 years
