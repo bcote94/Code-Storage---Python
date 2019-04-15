@@ -486,7 +486,7 @@ def prePlotting(Stock):
     
     return(Stock, SPY)
 
-def main(Stock, SPY):
+def modelFit(Stock, SPY):
     
     #Get Data for different methods
     NormalizedData = finalData(SPY,Stock,1) 
@@ -525,24 +525,47 @@ def tradingStrategy(pred, Stock):
     
     #Labels
     ax.set_xlabel('Date')
-    ax.set_ylabel('Adjusted closing price ($)')
+    ax.set_ylabel('Closing price ($)')
     ax.legend()
     plt.rc('grid',linestyle='dashdot',color='grey')
     plt.grid()  
-
     
-Stock, SPY = prePlotting('AAPL')
-rf_pred, svm_pred = main(Stock,SPY)
+    #Output for finding total profits
+    x = np.asarray(x).ravel()[:-1]
+    y = np.asarray(y).ravel()[:-1]
+    pro = np.transpose(np.vstack([x,y,y_pred]))
+    
+    return(pro)
 
-testStock = Stock[Stock.index >= '2016-01-01']
-tradingStrategy(rf_pred,testStock)
 
-Stock, SPY = prePlotting('AMD')
-rf_pred, svm_pred = main(Stock,SPY)
+def main(ticker):
+    Stock, SPY = prePlotting(ticker)
+    rf_pred, svm_pred = modelFit(Stock,SPY)
 
-testStock = Stock[Stock.index >= '2016-01-01']
-tradingStrategy(rf_pred,testStock)
+    testStock = Stock[Stock.index >= '2016-01-01']
+    profit_mat = tradingStrategy(rf_pred,testStock)
+    
+    #Calculates total predicted profits in testing set
+    shares_owned, position_cost, profits = np.zeros(len(profit_mat)+1), np.zeros(len(profit_mat)+1), np.zeros(len(profit_mat)+1)
+    for i in range(0,len(profit_mat)):
+        if profit_mat[i,2] > 0:
+            shares_owned[i] = shares_owned[i-1] + 1
+            position_cost[i] = position_cost[i-1] + profit_mat[i,1]
+        
+        if profit_mat[i,2] < 0:
+            profits[i] = shares_owned[i-1]*profit_mat[i,1] - position_cost[i-1]
+            shares_owned[i], position_cost[i] = 0, 0
+            
+    dca_profits = sum([sum(profit_mat[36,1]-profit_mat[i,1]) for i in range(0,len(profit_mat))])
+    
+    print(profits)
+    print(dca_profits)
+    
+    
 
+main('AAPL')
+main('AMD')
+main('T')
 
 
 
