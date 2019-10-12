@@ -18,15 +18,6 @@ Runtime Calculations:
     Processor:          i5-4590 @3.30GHz (4CPU)
     RAM:                8192MB, DDR3
 
-TODO (Post-School Project, Personal Work):
-    1. Add modular start/end dates
-    2. Test on paper trading with advanced buying strategies
-    3. Integrate with the API of selected trading platforms
-        3a. Web-Code to automate funds from bank to trading platform
-        3b. Initiate and close trades
-    4. Investigate shorter time window trading strategies
-        4a. Day trade SVC's?
-
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 
@@ -56,8 +47,8 @@ pd.set_option('display.float_format', '{:.2f}'.format)
 pd.set_option('display.max_columns',20)
 pd.set_option('display.expand_frame_repr', False)
 
-start_date = '2011-01-01'
-end_date = '2018-12-31'
+start_date = '2018-01-01'
+end_date = '2019-08-18'
 
 '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 Data Import Function
@@ -568,7 +559,7 @@ def main(ticker):
     Stock, SPY = prePlotting(ticker)
     rf_pred, svm_pred = modelFit(Stock,SPY)
 
-    testStock = Stock[Stock.index >= '2016-01-01']
+    testStock = Stock[Stock.index >= '2019-05-31']
     profit_mat = tradingStrategy(rf_pred,testStock)
     
     #Calculates total predicted profits in testing set
@@ -591,7 +582,7 @@ def main(ticker):
      
 
 #main('AAPL')
-#main('AMD')
+main('AMD')
 #main('T')
 
 
