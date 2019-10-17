@@ -1,6 +1,8 @@
 
 # Market ML Process
 
+![](https://github.com/bcote94/Market-Learning/blob/master/AMD_Performance.png)
+
 ## Overview
 This package implements a "market learner", generating a classifier that can predict the direction of a stocks movement in an arbitrary forward time window. The default is a 20-day-forward classifier.
 
