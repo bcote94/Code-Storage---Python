@@ -8,13 +8,12 @@ class Preprocessor(object):
     import pandas as pd
     import numpy as np
     from pandas_datareader import data as reader
-    from Market_Viz import Plots
+    from ML.Viz import Plots
     
-    def __init__(self,start_date,end_date,ticker,train_min,train_max):
+    def __init__(self,start_date,end_date,train_max,ticker):
         self.start_date = start_date
         self.end_date   = end_date
         self.ticker     = ticker
-        self.trainMin   = train_min
         self.trainMax   = train_max
         
     def run(self):
@@ -209,7 +208,7 @@ class Preprocessor(object):
     ###########################################################################
     
     #Scales or Normalizes Data and then provides a train/test split
-    def trainTestTransform(self,SPY,data,normalize=0):
+    def trainTestTransform(self,SPY,data,normalize=False):
 
         #Always join in the index data, in this case SPY
         Index_Stock_Data = self.pd.merge(SPY,data,left_index=True,right_index=True,how='outer')
@@ -230,23 +229,23 @@ class Preprocessor(object):
         #Spot Fix Data Names
         X = X.rename(columns={'WilliamsR':'WilliamsR_x','ROC':'ROC_y'})
         
-        if normalize==1:
+        if normalize:
             '''Normalize the Data'''
             from sklearn import preprocessing    
             
             scalar = preprocessing.StandardScaler()
             scaled_X = scalar.fit_transform(X)
-            X_df = pd.DataFrame(scaled_X, columns=X.columns, index=X.index)  
+            X_df = self.pd.DataFrame(scaled_X, columns=X.columns, index=X.index)  
         else:
             X_df = X
     
         '''
         Train/Test
         '''
-        X_train = X_df[(X_df.index > self.trainMin) & (X_df.index < self.trainMax)]
+        X_train = X_df[(X_df.index > self.start_date) & (X_df.index < self.trainMax)]
         X_test = X_df[(X_df.index >= self.trainMax)]
         
-        Y_train = Y[(Y.index>self.trainMin) & (Y.index<self.trainMax)]
+        Y_train = Y[(Y.index>self.start_date) & (Y.index<self.trainMax)]
         Y_test = Y[Y.index>=self.trainMax]
         
         return(X_train,Y_train,X_test,Y_test)
