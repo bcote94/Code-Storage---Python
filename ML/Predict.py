@@ -39,10 +39,10 @@ class Stock_Predict(object):
     
     def _profits(self,profit_mat):
         import numpy as np
-
+        n = len(profit_mat)
         #Calculates total predicted profits in testing set
-        shares_owned, position_cost, profits = np.zeros(len(profit_mat)+1), np.zeros(len(profit_mat)+1), np.zeros(len(profit_mat)+1)
-        for i in range(0,len(profit_mat)):
+        shares_owned, position_cost, profits = np.zeros(n+1), np.zeros(n+1), np.zeros(n+1)
+        for i in range(0,n):
             if profit_mat[i,2] > 0:
                 shares_owned[i] = shares_owned[i-1] + 1
                 position_cost[i] = position_cost[i-1] + profit_mat[i,1]
@@ -52,7 +52,7 @@ class Stock_Predict(object):
                 shares_owned[i], position_cost[i] = 0, 0
         
         #Dollar Cost Average Profits - to compare vs Profits
-        dca_profits =  sum([sum(profit_mat[36,1]-profit_mat[i,1] for i in range(0,len(profit_mat)))])
+        dca_profits =  sum([sum(profit_mat[n-1,1]-profit_mat[i,1] for i in range(0,n))])
 
         return sum(profits), dca_profits
 
