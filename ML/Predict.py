@@ -25,16 +25,11 @@ class Stock_Predict(object):
     def predict(self):
         preprocess = self.Preprocessor(self.start_date,self.end_date,self.train_max,self.ticker)
         Stock, SPY = preprocess.run()
-        print(Stock.shape)
-        print(SPY.shape)
         modelDFs   = preprocess.trainTestTransform(SPY,Stock,True)
-        
         rf_pred    = self.RF_Classifier().predict(modelDFs)
-        
         testStock = Stock[Stock.index >= self.train_max]
         profit_mat = self.Plots().tradingStrategy(rf_pred,testStock)
         profits, dca_profits = self._profits(profit_mat)
-        
         return profit_mat, profits, dca_profits
     
     def _profits(self,profit_mat):
