@@ -10,7 +10,7 @@ class Preprocessor(object):
     from pandas_datareader import data as reader
     from ML.Viz import Plots
     
-    def __init__(self,start_date, end_date, ticker, idx_days_back, stock_days_back, pred_window, index_ticker):
+    def __init__(self,start_date, end_date, ticker, idx_days_back, stock_days_back, pred_window, index_ticker, use_reader):
         self.start_date = start_date
         self.end_date   = end_date
         self.ticker     = ticker
@@ -18,6 +18,7 @@ class Preprocessor(object):
         self.stock_days_back = stock_days_back
         self.pred_window = pred_window
         self.index_ticker = index_ticker
+        self.use_reader = use_reader
 
     def run(self):
         #Aggressive monthly trading strategy
@@ -51,8 +52,14 @@ class Preprocessor(object):
         return data
         
     def _importStock(self,ticker):
-        #return self.reader.DataReader(ticker,'yahoo', self.start_date, self.end_date).drop(['Adj Close'],axis=1)
-        return self.pd.read_csv('/home/data/{0}.csv'.format(ticker), low_memory=False).set_index('Date')
+        if self.use_reader:
+            return self.reader.DataReader(ticker,'yahoo', self.start_date, self.end_date).drop(['Adj Close'],axis=1)
+        else:
+            stock_file = '/home/data/{0}.csv'.format(ticker)
+            if os.path.exists(stock_file)
+                return self.pd.read_csv(stock_file, low_memory=False).set_index('Date')
+            else:
+                raise RuntimeError('Ensure you have {0}\'s stock data imported to {1}'.format(ticker, stock_file))
     
     def getKDR(self,days, data):
         kmat = self.np.zeros(len(data))
