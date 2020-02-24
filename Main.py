@@ -1,20 +1,32 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Oct 11 20:05:43 2019
-
-@author: Brian Cote
-"""
-#See __init__ for instructions, use cases
-
+from dateutil.relativedelta import relativedelta
 from ML.Predict import Stock_Predict
+import datetime
+import json
+import os
 
-start_date = '2011-01-01'
-end_date = '2019-10-15'
-train_max = '2019-01-01' #End of training period
-tsla = 'TSLA'
+def main():
+    stock = 'AMD'
+    hyper_param_path = '/home/data/hyper_parameters.json'
+    cross_validation_params = {'n_iter':50, 'cv':5}
+    if os.path.isfile(hyper_param_path):
+        with open(hyper_param_path) as hyper_params:
+            hyper_parameters = json.loads(hyper_params.read())
+    else:
+        hyper_parameters = None
 
-res = Stock_Predict(start_date,end_date,train_max,tsla).predict()
-print("Test Set Results for Model:")
-print("Profits from ML Model: $",res[1])
-print("\nProfits from Dollar Cost Averaging: $",res[2],'\n')
+    params = {'start_date':(datetime.datetime.today() - relativedelta(years=4)).strftime('%d-%m-%Y'),
+              'end_date':datetime.datetime.today().strftime('%d-%m-%Y'),
+              'cross_validate':True,
+              'idx_days_back':90,
+              'stock_days_back':5,
+              'pred_window':20,
+              'index_ticker':'SPY',
+              'stock':stock,
+              'hyper_parameters':hyper_parameters, #Requires a dict argument iff cross_validate is true
+              'scoring':'average_precision',
+              'cross_validation_params':cross_validation_params}
 
+    Stock_Predict(params).predict()
+    
+if __name__ == '__main__':
+    main()
