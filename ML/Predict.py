@@ -27,7 +27,7 @@ class Stock_Predict(object):
                                             idx_days_back = params.get('idx_days_back'),
                                             stock_days_back = params.get('stock_days_back'),
                                             pred_window = params.get('pred_window'),
-                                            index_ticker = params.get('index_ticker')
+                                            index_ticker = params.get('index_ticker'),
                                             use_reader = params.get('use_reader'))
         
         self.RF = self.RF_Classifier(cross_validation = params.get('cross_validate'),
