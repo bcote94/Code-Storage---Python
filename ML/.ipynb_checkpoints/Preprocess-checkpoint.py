@@ -10,24 +10,28 @@ class Preprocessor(object):
     from pandas_datareader import data as reader
     from ML.Viz import Plots
     
-    def __init__(self,start_date,end_date,ticker):
+    def __init__(self,start_date, end_date, ticker, idx_days_back, stock_days_back, pred_window, index_ticker):
         self.start_date = start_date
         self.end_date   = end_date
         self.ticker     = ticker
-        
+        self.idx_days_back = idx_days_back
+        self.stock_days_back = stock_days_back
+        self.pred_window = pred_window
+        self.index_ticker = index_ticker
+
     def run(self):
         #Aggressive monthly trading strategy
         #Stock: 1 week back -- recent data better says literature
         #Index: 1 quarter back -- older data better says literature
-        Stock = self._getData(self.ticker,5,20)
-        SPY   = self._getData('SPY',90,20)
+        Stock = self._getData(self.ticker, self.stock_days_back, self.pred_window)
+        IDX   = self._getData(self.index_ticker, self.idx_days_back, self.pred_window)
         
         #Drops our unneeded variables
         del Stock['WilliamsR']
-        del SPY['ROC']
-        del SPY['Disparity']
+        del IDX['ROC']
+        del IDX['Disparity']
         
-        Index_Stock_Data = self.pd.merge(SPY,Stock,left_index=True,right_index=True,how='outer')
+        Index_Stock_Data = self.pd.merge(IDX,Stock, left_index=True, right_index=True, how='outer')
         Index_Stock_Data = Index_Stock_Data.replace([self.np.inf,-self.np.inf],self.np.nan).dropna().rename(columns={'WilliamsR':'WilliamsR_x','ROC':'ROC_y'})
         Index_Stock_Data.drop(['Output_x','Open_x','High_x','Low_x','Close_x','Volume_x','Open_y', 'High_y','Low_y','Close_y','Volume_y'],axis=1, inplace=True)
         return(Index_Stock_Data)

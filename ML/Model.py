@@ -6,19 +6,25 @@ Created on Fri Oct 11 19:46:46 2019
 """
 
 class RF_Classifier(object):
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.model_selection import RandomizedSearchCV
     from ML.Viz import Plots
     import numpy as np
     
-    def __init__(self, cv = False):
+    def __init__(self, cross_validation, scoring, hyper_parameters, cross_validation_params):
         self.random_grid = self._gridSearch()
-        self.cv = cv
-        self.scoring = 'average_precision'
+        self.cross_validation = cross_validation
+        self.scoring = scoring
+        self.hyper_parameters = hyper_parameters
+        self.cross_validation_params = cross_validation_params
     
     def predict(self,dfs):
-        #Tune Case via Grid Search
-        rf_pred = self._rfNoTune(dfs) if not self.cv else self._randomForest(dfs)
+        rf_pred = self._rfNoTune(dfs) if not self.cross_validation else self._randomForest(dfs)
+        if self.cross_validation:
+            import json
+            with open('/home/data/hyper_parameters.json', 'w') as file:
+                json.dump(self.optimized_params, file)
         return(rf_pred)
-
     '''''''''''''''''
     Ensemble Methods
     ''''''''''''''''''
@@ -35,79 +41,54 @@ class RF_Classifier(object):
     '''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
     
     def _rfNoTune(self,dfs):
-        from sklearn.ensemble import RandomForestClassifier
-        from sklearn.model_selection import cross_val_score
-
-        #Wont normalize the data this time, want to have interpretable coefficients maybe
         train, test, ytrain = dfs
-        #Note - thorough testing has shown this to be a decent model setup by default.
-        #Run _randomForest() to re-tune it. Note that may take numerous hours.
-        tree_model = RandomForestClassifier(n_estimators=311,
+        tree_model = self.RandomForestClassifier(n_estimators=self.hyper_parameters.get('n_estimators'),
                                             criterion="gini",
-                                            max_depth=2,
-                                            min_samples_split=15,
-                                            min_samples_leaf=10,
-                                            max_features='sqrt',
-                                            bootstrap=True,
-                                            oob_score=True,
-                                            verbose=0)
+                                            max_depth=self.hyper_parameters.get('max_depth'),
+                                            min_samples_split=self.hyper_parameters.get('min_samples_split'),
+                                            min_samples_leaf=self.hyper_parameters.get('min_samples_leaf'),
+                                            max_features=self.hyper_parameters.get('max_features'),
+                                            bootstrap=self.hyper_parameters.get('bootstrap'),
+                                            verbose=1)
         
-
         print('..............................')
         print('Random Forest Ensemble Output:')
         print('..............................')
-        scores = cross_val_score(tree_model.fit(train,ytrain),
-                                 train,
-                                 ytrain,
-                                 cv=5,
-                                 scoring=self.scoring)
-        for i, score in enumerate(scores):
-            print("Validation Set {} score: {}".format(i, score))
-        print('\n')
-        
-        tree_model.fit(train,ytrain)
-        y_pred = tree_model.predict(test)
-        return(y_pred)
+        estimator = tree_model.fit(train,ytrain)
+        self._print_cv_scores(estimator, train, ytrain)
+        return estimator.predict(test)
 
     def _randomForest(self,dfs):
-        
-        from sklearn.ensemble import RandomForestClassifier
-        from sklearn.model_selection import RandomizedSearchCV
-        from sklearn.model_selection import cross_val_score
-        
         train, test, ytrain = dfs        
-        rf = RandomForestClassifier()
-        print("Initialized")
-        rf_random = RandomizedSearchCV(estimator = rf, 
-                                       param_distributions = self.random_grid,
-                                       n_iter = 50, 
-                                       scoring = self.scoring,
-                                       cv = 5, 
-                                       verbose=10,
-                                       n_jobs = -1)
-        
-        print("CV Complete")
+        rf_random = self.RandomizedSearchCV(estimator = self.RandomForestClassifier(), 
+                                            param_distributions = self.random_grid,
+                                            n_iter = self.cross_validation_params.get('n_iter'), 
+                                            scoring = self.scoring,
+                                            cv = self.cross_validation_params.get('cv'), 
+                                            verbose=10,
+                                            n_jobs = -1)
         rf_random.fit(train, ytrain)
+        self.optimized_params = rf_random.best_params_
         print('Best Estimators Through Random Grid Search:')
-        print(rf_random.best_params_)
+        print(self.optimized_params)
         print('\n')
         print('..............................')
         print('Tuned Random Forest Ensemble Output:')
         print('..............................')
-        
-        best_random = rf_random.best_estimator_
-        scores = cross_val_score(best_random, 
+        estimator = rf_random.best_estimator_
+        self._print_cv_scores(estimator, train, ytrain)
+        return estimator.predict(test)
+    
+    def _print_cv_scores(self, estimator, train, ytrain):
+        from sklearn.model_selection import cross_val_score
+        scores = cross_val_score(estimator, 
                                  train, 
                                  ytrain,
-                                 cv=5,
+                                 cv=self.cross_validation_params.get('cv'),
                                  scoring = self.scoring)
         for i, score in enumerate(scores):
             print("Validation Set {} score: {}".format(i, score))
         print('\n')
-        
-        pred = best_random.predict(test)
-        
-        return(pred)
         
     def _gridSearch(self):
         # Number of trees in random forest
