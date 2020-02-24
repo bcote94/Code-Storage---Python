@@ -18,6 +18,8 @@ class Stock_Predict(object):
         if params.get('cross_validation_params') is None:
             print("Defaulting to 5-Fold Cross-Validation for Model Performance Analysis . . .")
             params['cross_validation_params'] = {'cv':5}
+        if params.get('use_reader') is None:
+            params['use_reader'] = False
         
         self.preprocess = self.Preprocessor(start_date = params.get('start_date'), 
                                             end_date = params.get('end_date'), 
@@ -25,7 +27,8 @@ class Stock_Predict(object):
                                             idx_days_back = params.get('idx_days_back'),
                                             stock_days_back = params.get('stock_days_back'),
                                             pred_window = params.get('pred_window'),
-                                            index_ticker = params.get('index_ticker'))
+                                            index_ticker = params.get('index_ticker')
+                                            use_reader = params.get('use_reader'))
         
         self.RF = self.RF_Classifier(cross_validation = params.get('cross_validate'),
                                      scoring = params.get('model_metric'),
