@@ -3,13 +3,18 @@ from ML.Predict import Stock_Predict
 import datetime
 import json
 import os
+import sys
 
+STOCK = sys.argv[1]
+if len(sys.argv) == 3:
+    HYPER_PARAM_PATH = sys.argv[2]
+else:
+    HYPER_PARAM_PATH = '/home/data/hyper_parameters.json' 
+    
 def main():
-    stock = 'AMD'
-    hyper_param_path = '/home/data/hyper_parameters.json'
     cross_validation_params = {'n_iter':50, 'cv':5}
-    if os.path.isfile(hyper_param_path):
-        with open(hyper_param_path) as hyper_params:
+    if os.path.isfile(HYPER_PARAM_PATH):
+        with open(HYPER_PARAM_PATH) as hyper_params:
             hyper_parameters = json.loads(hyper_params.read())
     else:
         hyper_parameters = None
@@ -21,7 +26,7 @@ def main():
               'stock_days_back':5,
               'pred_window':20,
               'index_ticker':'SPY',
-              'stock':stock,
+              'stock':STOCK,
               'hyper_parameters':hyper_parameters, #Requires a dict argument iff cross_validate is true
               'scoring':'average_precision',
               'cross_validation_params':cross_validation_params}
