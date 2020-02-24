@@ -29,7 +29,8 @@ def main():
               'stock':STOCK,
               'hyper_parameters':hyper_parameters, #Requires a dict argument iff cross_validate is true
               'scoring':'average_precision',
-              'cross_validation_params':cross_validation_params}
+              'cross_validation_params':cross_validation_params,
+              'use_reader':False}
 
     Stock_Predict(params).predict()
     
