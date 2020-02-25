@@ -9,6 +9,7 @@ class Preprocessor(object):
     import numpy as np
     from pandas_datareader import data as reader
     from ML.Viz import Plots
+    import os
     
     def __init__(self,start_date, end_date, ticker, idx_days_back, stock_days_back, pred_window, index_ticker, use_reader):
         self.start_date = start_date
@@ -56,8 +57,8 @@ class Preprocessor(object):
             return self.reader.DataReader(ticker,'yahoo', self.start_date, self.end_date).drop(['Adj Close'],axis=1)
         else:
             stock_file = '/home/data/{0}.csv'.format(ticker)
-            if os.path.exists(stock_file)
-                return self.pd.read_csv(stock_file, low_memory=False).set_index('Date')
+            if self.os.path.exists(stock_file):
+                return self.pd.read_csv(stock_file, low_memory=False).set_index('Date').drop(['Adj Close'],axis=1)
             else:
                 raise RuntimeError('Ensure you have {0}\'s stock data imported to {1}'.format(ticker, stock_file))
     
