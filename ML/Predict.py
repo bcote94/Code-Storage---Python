@@ -13,7 +13,7 @@ class Stock_Predict(object):
 
     def __init__(self, params):
         if params.get('cross_validate') is False and params.get('hyper_parameters') is None:
-            raise ValueError('If you are not cross validate optimizing, you MUST input a dict-type of model '
+            raise ValueError('If you are not cross validate optimizing, you MUST input a dict-type of models '
                              'hyperparameters. See: https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.'
                              'RandomForestClassifier.html for required parameters.')
         if params.get('cross_validate') is True and params.get('cross_validation_params') is None:
