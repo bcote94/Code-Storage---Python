@@ -11,3 +11,5 @@ ETF_LOOKBACK = 90
 PREDICTION_WINDOW = 20
 
 SCORING = 'average_precision'
+MODEL_VARIABLES = ['K', 'D', 'WilliamsR', 'Momentum', 'ROC', 'RSI', 'ATR',
+                   'Volatility', 'Disparity', 'MACD', 'OBV', 'Output']
