@@ -63,6 +63,9 @@ class Preprocessor(object):
                 raise RuntimeError('Ensure you have {0}\'s stock data imported to {1}'.format(ticker, stock_file))
     
     def getKDR(self,days, data):
+        # The Williams %R represents a market’s closing level versus the highest high for the lookback period.
+        # Conversely, the Fast Stochastic Oscillator, which moves between 0 and 100, illustrates a market’s close
+        # in relation to the lowest low
         kmat = self.np.zeros(len(data))
         dmat = self.np.zeros(len(data))
         rmat = self.np.zeros(len(data))

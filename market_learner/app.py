@@ -8,15 +8,13 @@ LOGGER = logger.setup_logger(__name__)
 
 
 @timing
-def run(stock, start_date):
-    equity_data = get_data.read_yahoo_data(stock, start_date)
-    etf_data = get_data.read_yahoo_data(ETF, start_date)
+def run(stock):
+    equity_data = get_data.read_yahoo_data(stock)
+    etf_data = get_data.read_yahoo_data(ETF)
     print(equity_data.loc['2020-08-20'])
     feature_engineering.run(equity_data)
     return equity_data, etf_data
 
 
 if __name__ == '__main__':
-    stock = 'TSLA'
-    start_date = [2020, 1, 6]
-    run(stock, start_date)
+    run('TSLA')
