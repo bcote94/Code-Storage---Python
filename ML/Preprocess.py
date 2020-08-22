@@ -216,7 +216,7 @@ class Preprocessor(object):
     ####End GetData Functions
     ###########################################################################
     
-    #Scales or Normalizes Data and then provides a train/test split
+    #Scales or Normalizes Data and then provides a train/models split
     def trainTestTransform(self,Index_Stock_Data):
         from sklearn import preprocessing 
         
