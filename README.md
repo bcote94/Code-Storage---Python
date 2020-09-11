@@ -1,6 +1,8 @@
 
 # Market ML Process
 
+# NOTE: This repo is currently being restructured into a proper PyPi package / to be more pythonic. ML/ folder is old (crappy) code.
+
 ![](https://github.com/bcote94/Market-Learning/blob/master/AMD_Performance.png)
 
 ## Overview
