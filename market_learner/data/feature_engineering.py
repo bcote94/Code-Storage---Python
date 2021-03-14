@@ -123,9 +123,7 @@ class FeatureEngineering(object):
         obv[0] = data.Volume.iloc[0]
 
         for i in range(1, self.length):
-            x0 = data.Close.iloc[i - 1, ]
-            x1 = data.Close.iloc[i, ]
-            change = x1 - x0
+            change = data.Close.iloc[i - 1, ] - data.Close.iloc[i, ]
 
             if change > 0:
                 obv[i] = obv[i - 1] + data.Volume.iloc[i, ]
@@ -139,31 +137,8 @@ class FeatureEngineering(object):
                 labels[i] = 1
             if (data.Close.iloc[i + self.window, ] - data.Close.iloc[i, ]) < 0:
                 labels[i] = -1
-        labels = [label if label==-1 else 1 for label in labels]
+        labels = [label if label == -1 else 1 for label in labels]
         return obv, labels
-
-
-"""
-    def trainTestTransform(self,Index_Stock_Data):
-        from sklearn import preprocessing 
-        
-        train = Index_Stock_Data[Index_Stock_Data.Output_y!=0].drop('Output_y', axis=1)
-        train_y = Index_Stock_Data[Index_Stock_Data.Output_y!=0]['Output_y']
-        test = Index_Stock_Data[Index_Stock_Data.Output_y==0].drop('Output_y', axis=1)
-        
-        modelDfs = []
-        scalar = preprocessing.StandardScaler()
-        for df in train, test:
-            scaled = scalar.fit_transform(df)
-            df_scaled = self.pd.DataFrame(scaled, columns=df.columns, index=df.index)
-            modelDfs.append(df_scaled)
-        modelDfs.append(train_y)
-
-
-        return modelDfs
-
-
-"""
 
 
 

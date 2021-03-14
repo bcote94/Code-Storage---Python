@@ -2,7 +2,7 @@ import sys
 from utils import logger
 from utils.decorator import timing
 from utils.constants import *
-from data import get_data, feature_engineering
+from data import data_reader, feature_engineering
 from models import predict, train
 
 LOGGER = logger.setup_logger(__name__)
@@ -10,8 +10,8 @@ LOGGER = logger.setup_logger(__name__)
 
 @timing
 def run(stock):
-    equity_data = get_data.read_yahoo_data(stock)
-    etf_data = get_data.read_yahoo_data(ETF)
+    equity_data = data_reader.read_yahoo_data(stock)
+    etf_data = data_reader.read_yahoo_data(ETF)
     equity_enriched = feature_engineering.FeatureEngineering(lookback=EQUITY_LOOKBACK,
                                                              window=PREDICTION_WINDOW,
                                                              length=len(equity_data)).run(equity_data)
