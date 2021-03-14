@@ -5,7 +5,6 @@ ETF_LOOKBACK = 90
 PREDICTION_WINDOW = 20
 YEARS_LOOKBACK = 8
 
-ETF = 'SPY'
 CURRENT_MONTH = datetime.now().month
 CURRENT_DAY = datetime.now().day
 CURRENT_YEAR = datetime.now().year

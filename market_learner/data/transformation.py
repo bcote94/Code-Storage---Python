@@ -15,8 +15,8 @@ def merge(etf, equity):
     return df
 
 
-def train_test_split(data):
-    train, test = np.split(data, [int(.90 * len(data))])
+def train_test_split(data, split_per=.90):
+    train, test = np.split(data, [int(split_per * len(data))])
     train_y, test_y = train['label'], test['label']
     train, test = train.drop('label', axis=1), test.drop('label', axis=1)
     return train, test, train_y, test_y

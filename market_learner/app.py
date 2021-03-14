@@ -9,9 +9,9 @@ LOGGER = logger.setup_logger(__name__)
 
 
 @timing
-def run(stock):
-    equity_data = data_reader.read_yahoo_data(stock)
-    etf_data = data_reader.read_yahoo_data(ETF)
+def run(equity, etf='SPY'):
+    equity_data = data_reader.read_yahoo_data(ticker=equity)
+    etf_data = data_reader.read_yahoo_data(ticker=etf)
     equity_enriched = feature_engineering.FeatureEngineering(lookback=EQUITY_LOOKBACK,
                                                              window=PREDICTION_WINDOW,
                                                              length=len(equity_data)).run(equity_data)
@@ -21,7 +21,7 @@ def run(stock):
                                                           length=len(etf_data)).run(etf_data)
 
     data = transformation.merge(etf=etf_enriched, equity=equity_enriched)
-    train_raw, test_raw, train_y, test_y = transformation.train_test_split(data)
+    train_raw, test_raw, train_y, test_y = transformation.train_test_split(data=data, split_per=.9)
     train, test = transformation.scale(train_raw), transformation.scale(test_raw)
     optimized_params, estimator = predict.cv_fit(train=train, train_y=train_y)
     return 1

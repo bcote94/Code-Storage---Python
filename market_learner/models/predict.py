@@ -30,11 +30,11 @@ def cv_fit(train, train_y):
                                    n_iter=CV_PARAMS.get('n_iter'),
                                    scoring=CV_PARAMS.get('scoring'),
                                    cv=CV_PARAMS.get('cv'),
-                                   verbose=5,
+                                   verbose=1,
                                    n_jobs=-1)
     rf_random.fit(train, train_y)
     optimized_params = rf_random.best_params_
-    print(optimized_params)
+    LOGGER.debug(optimized_params)
     estimator = rf_random.best_estimator_
     _performance(estimator, train, train_y)
     return optimized_params, estimator
