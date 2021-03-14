@@ -12,3 +12,7 @@ src/*.egg-info
 lib
 lib64
 __pycache__/
+venv/*
+*.js
+*.j2
+*.json
