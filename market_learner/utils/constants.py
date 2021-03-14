@@ -18,3 +18,7 @@ MODEL_VARIABLES = ['slow_stochastic_%K', 'fast_stochastic_%D', 'williams_%R', 'p
 
 MULT12 = 2 / 13
 MULT26 = 2 / 27
+
+CV_PARAMS = {'cv': 5,
+             'scoring': 'precision',
+             'n_iter': 10}

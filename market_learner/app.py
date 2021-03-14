@@ -23,6 +23,7 @@ def run(stock):
     data = transformation.merge(etf=etf_enriched, equity=equity_enriched)
     train_raw, test_raw, train_y, test_y = transformation.train_test_split(data)
     train, test = transformation.scale(train_raw), transformation.scale(test_raw)
+    optimized_params, estimator = predict.cv_fit(train=train, train_y=train_y)
     return 1
 
 
