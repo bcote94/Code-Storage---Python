@@ -2,8 +2,8 @@ import sys
 from utils import logger
 from utils.decorator import timing
 from utils.constants import *
-from data import data_reader, feature_engineering
-from models import predict, train
+from data import data_reader, feature_engineering, transformation
+from models import predict
 
 LOGGER = logger.setup_logger(__name__)
 
@@ -20,8 +20,10 @@ def run(stock):
                                                           window=PREDICTION_WINDOW,
                                                           length=len(etf_data)).run(etf_data)
 
-    #TODO: Then combine them somehow
-    return
+    data = transformation.merge(etf=etf_enriched, equity=equity_enriched)
+    train_raw, test_raw, train_y, test_y = transformation.train_test_split(data)
+    train, test = transformation.scale(train_raw), transformation.scale(test_raw)
+    return 1
 
 
 if __name__ == '__main__':
