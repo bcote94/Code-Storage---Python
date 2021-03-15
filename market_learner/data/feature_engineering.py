@@ -132,7 +132,7 @@ class FeatureEngineering(object):
             else:
                 obv[i] = obv[i - 1]
 
-        for i in range(self.window, self.length):
+        for i in range(0, self.length - self.window):
             labels[i] = 1 if (data.Close.iloc[i, ] <= data.Close.iloc[i + self.window, ]) else -1
 
         return obv, labels

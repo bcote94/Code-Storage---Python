@@ -60,3 +60,20 @@ def _grid_constructor():
                    'min_samples_leaf': [1, 2, 5],
                    }
     return random_grid
+
+def ConfusionMat(pred, ytest):
+    from sklearn.metrics import confusion_matrix
+
+    truthArray = []
+    for i in range(len(ytest)):
+            # print "prediction: %d\tactual: %d" % (predictions[i], Y_test[i])
+            truthArray.append(1. if pred[i] == ytest[i] else 0.)
+
+        # print len(truthArray)
+    print('The Total Predictive Accuracy Is:',100*sum(truthArray)/len(ytest))
+
+    #Prints confusion matrix
+    cm = confusion_matrix(ytest,pred)
+    spe = cm[0,0]/sum(cm[0,])
+    sen = cm[1,1]/sum(cm[1,])
+    print("Sensitivity is",100*spe,"% and Specificity is",100*sen,"%")

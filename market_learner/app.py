@@ -21,10 +21,14 @@ def run(equity, etf='SPY'):
                                                           length=len(etf_data)).run(etf_data)
 
     data = transformation.merge(etf=etf_enriched, equity=equity_enriched)
-    train_raw, test_raw, train_y, test_y = transformation.train_test_split(data=data, split_per=.9)
+    train_raw, test_raw, train_y, test_y = transformation.train_test_split(data=data, split_per=.8)
     train, test = transformation.scale(train_raw), transformation.scale(test_raw)
     optimized_params, estimator = predict.cv_fit(train=train, train_y=train_y)
-    return 1
+
+    test_y = test_y[0:-20]
+    pred = estimator.predict(test)
+    #predict.ConfusionMat(pred, test_y)
+    return equity_data, pred
 
 
 if __name__ == '__main__':
