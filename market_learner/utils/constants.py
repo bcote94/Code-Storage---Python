@@ -12,6 +12,7 @@ CURRENT_DATETIME = datetime(CURRENT_YEAR, CURRENT_MONTH, CURRENT_DAY)
 START_DATETIME = CURRENT_DATETIME - timedelta(YEARS_LOOKBACK * 365)
 
 SCORING = 'average_precision'
+MODEL_PATH = '/home/leigh/PycharmProjects/Market-Learning/models/'
 MODEL_VARIABLES = ['slow_stochastic_%K', 'fast_stochastic_%D', 'williams_%R', 'price_difference', 'price_ROC',
                    'RSI', 'ATR', 'average_price_volatility', 'disparity_index', 'MACD', 'on_balance_volume', 'label']
 

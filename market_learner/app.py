@@ -23,11 +23,15 @@ def run(equity, etf='SPY'):
     data = transformation.merge(etf=etf_enriched, equity=equity_enriched)
     train_raw, test_raw, train_y, test_y = transformation.train_test_split(data=data, split_per=.8)
     train, test = transformation.scale(train_raw), transformation.scale(test_raw)
-    optimized_params, estimator = predict.cv_fit(train=train, train_y=train_y)
+    estimator = predict.fit_predict(train=train, train_y=train_y, equity=equity)
 
-    test_y = test_y[0:-20]
-    pred = estimator.predict(test)
-    #predict.ConfusionMat(pred, test_y)
+    test_y = test_y[0:-PREDICTION_WINDOW]
+    pred = estimator.predict(test[0:-PREDICTION_WINDOW])
+    predict._tot_performance(pred, test_y)
+
+    #TODO: Now refit on all the normalized full set of data, sans the latest day
+
+    t = transformation.scale(data)
     return equity_data, pred
 
 

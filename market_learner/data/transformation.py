@@ -26,3 +26,4 @@ def scale(data):
     scaler = preprocessing.StandardScaler()
     scaled = scaler.fit_transform(data)
     return pd.DataFrame(scaled, columns=data.columns, index=data.index)
+

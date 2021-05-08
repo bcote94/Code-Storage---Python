@@ -55,25 +55,22 @@ class FeatureEngineering(object):
 
     def _rsi(self, data):
         rsi = np.zeros(self.length)
-        change = np.zeros(self.length)
         gain = np.zeros(self.length)
         loss = np.zeros(self.length)
-        avgGain = np.zeros(self.length)
-        avgLoss = np.zeros(self.length)
 
+        change = data.Close.diff()
         for i in range(1, self.length):
-            change[i] = data.Close.iloc[i] - data.Close.iloc[i - 1, ]
             if change[i] > 0:
                 gain[i] += change[i]
             else:
                 loss[i] += abs(change[i])
 
         for i in range(self.lookback, self.length):
-            local_gain = gain[i - self.lookback:i]
-            local_loss = loss[i - self.lookback:i]
-            avgGain[i] = sum(local_gain) / self.lookback
-            avgLoss[i] = sum(local_loss) / self.lookback
-            rs = avgGain[i] / avgLoss[i]
+            avg_gain = sum(gain[i - self.lookback:i]) / self.lookback
+            avg_loss = sum(loss[i - self.lookback:i]) / self.lookback
+            if avg_loss == 0:
+                avg_loss = 0.001
+            rs = avg_gain / avg_loss
             rsi[i] = 100 - (100 / (1 + rs))
         return rsi
 
