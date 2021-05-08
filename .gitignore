@@ -16,3 +16,4 @@ venv/*
 *.js
 *.j2
 *.json
+.idea
