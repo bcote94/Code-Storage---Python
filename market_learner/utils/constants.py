@@ -1,9 +1,9 @@
 from datetime import datetime, timedelta
 
-EQUITY_LOOKBACK = 5
-ETF_LOOKBACK = 90
-PREDICTION_WINDOW = 10
-YEARS_LOOKBACK = 8
+EQUITY_LOOKBACK = 10
+ETF_LOOKBACK = 180
+PREDICTION_WINDOW = 20
+YEARS_LOOKBACK = 10
 
 CURRENT_MONTH = datetime.now().month
 CURRENT_DAY = datetime.now().day
@@ -21,4 +21,4 @@ MULT26 = 2 / 27
 
 CV_PARAMS = {'cv': 5,
              'scoring': 'precision',
-             'n_iter': 10}
+             'n_iter': 100}

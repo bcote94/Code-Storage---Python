@@ -39,5 +39,5 @@ def run(equity, etf='SPY'):
 
 
 if __name__ == '__main__':
-    ticker = 'AMD'
+    ticker = 'AAPL'
     run(ticker)

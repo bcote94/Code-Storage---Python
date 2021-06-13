@@ -49,11 +49,13 @@ def _cv_fit(train, train_y):
 
 # noinspection PyTypeChecker
 def _grid_constructor():
-    random_grid = {'n_estimators': [int(x) for x in np.linspace(start=10, stop=500, num=20)],
-                   'max_features': ['sqrt', 'log2', None],
-                   'max_depth': [int(x) for x in np.linspace(1, 10, num=1)],
-                   'min_samples_split': [2, 5, 10, 15],
-                   'min_samples_leaf': [1, 2, 5],
+    random_grid = {'n_estimators': [int(x) for x in np.linspace(start=10, stop=1010, num=50)],
+                   'max_features': ['sqrt', 'log2'],
+                   'max_depth': [int(x) for x in np.linspace(1, 15, num=1)],
+                   'min_samples_split': [5, 10, 50],
+                   'min_samples_leaf': [1, 2, 5, 10, 20],
+                   'bootstrap': [True],
+                   'class_weight': ["balanced"]
                    }
     return random_grid
 
@@ -85,6 +87,4 @@ def _train(train, train_y, path):
     LOGGER.debug("Building Model Parameters...")
     params, estimator = _cv_fit(train, train_y)
     LOGGER.debug("Parameters generated: {}".format(params))
-    with open(path, 'w', encoding='utf-8') as f:
-        json.dump(params, f, ensure_ascii=False)
     return params, estimator
