@@ -14,8 +14,8 @@ LOGGER = logger.setup_logger(__name__)
 def fit_predict(train, train_y, equity):
     os.path.expanduser(MODEL_PATH)
     path = "{}{}_model.json".format(MODEL_PATH, equity)
-    estimator = _train(train=train, train_y=train_y, path=path)
-    return estimator
+    params, estimator = _train(train=train, train_y=train_y, path=path)
+    return params, estimator
 
 
 def static_fit(train, train_y, **params):
@@ -69,30 +69,22 @@ def _cv_performance(estimator, train, train_y):
     return 1
 
 
-def _tot_performance(pred, test_y):
+def tot_performance(pred, test_y):
     truth_array = []
     for i in range(len(test_y)):
         truth_array.append(1. if pred[i] == test_y[i] else 0.)
-    print('The Total Predictive Accuracy Is:', 100 * sum(truth_array) / len(test_y))
+    LOGGER.debug('The Total Predictive Accuracy Is: {}'.format(100 * sum(truth_array) / len(test_y)))
 
-    # Prints confusion matrix
     cm = cmat(test_y, pred)
     spe = cm[0, 0] / sum(cm[0,])
     sen = cm[1, 1] / sum(cm[1,])
-    print("Sensitivity is", 100 * spe, "% and Specificity is", 100 * sen, "%")
+    LOGGER.debug("Sensitivity is {}& and Specificity is {}%".format(100*sen, 100*spe))
 
 
 def _train(train, train_y, path):
-    if not os.path.exists(path):
-        LOGGER.debug("Building Model Parameters...")
-        params, estimator = _cv_fit(train, train_y)
-        LOGGER.debug("Parameters generated: {}".format(params))
-        with open(path, 'w', encoding='utf-8') as f:
-            json.dump(params, f, ensure_ascii=False)
-    else:
-        LOGGER.debug("Importing Model Parameters...")
-        with open(path, 'r') as file:
-            params = json.load(file)
-        LOGGER.debug("Parameters Loaded: {}".format(params))
-        estimator = static_fit(train, train_y, **params)
-    return estimator
+    LOGGER.debug("Building Model Parameters...")
+    params, estimator = _cv_fit(train, train_y)
+    LOGGER.debug("Parameters generated: {}".format(params))
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump(params, f, ensure_ascii=False)
+    return params, estimator

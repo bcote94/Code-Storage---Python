@@ -1,11 +1,13 @@
 import numpy as np
 import pandas as pd
 from utils import logger
+from utils.decorator import timing
 from utils.constants import *
 
 LOGGER = logger.setup_logger(__name__)
 
 
+@timing
 class FeatureEngineering(object):
 
     def __init__(self, lookback, window, length):
