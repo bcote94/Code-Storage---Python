@@ -1,4 +1,5 @@
 import sys
+import numpy as np
 from utils import logger
 from utils.decorator import timing
 from utils.constants import *
@@ -21,19 +22,22 @@ def run(equity, etf='SPY'):
                                                           length=len(etf_data)).run(etf_data)
 
     data = transformation.merge(etf=etf_enriched, equity=equity_enriched)
-    train_raw, test_raw, train_y, test_y = transformation.train_test_split(data=data, split_per=.8)
-    train, test = transformation.scale(train_raw), transformation.scale(test_raw)
-    estimator = predict.fit_predict(train=train, train_y=train_y, equity=equity)
+    data_scaled = transformation.scale(data.drop('label', axis=1))
+    data_scaled['label'] = data['label']
+
+    train, test, train_y, test_y = transformation.train_test_split(data=data_scaled, split_per=.8)
+    params, estimator = predict.fit_predict(train=train, train_y=train_y, equity=equity)
 
     test_y = test_y[0:-PREDICTION_WINDOW]
-    pred = estimator.predict(test[0:-PREDICTION_WINDOW])
-    predict._tot_performance(pred, test_y)
+    test_pred = estimator.predict(test[0:-PREDICTION_WINDOW])
+    predict.tot_performance(test_pred, test_y)
 
-    #TODO: Now refit on all the normalized full set of data, sans the latest day
-
-    t = transformation.scale(data)
-    return equity_data, pred
+    best_estimator = predict.static_fit(data_scaled.drop('label', axis=1), data_scaled['label'], **params)
+    pred = best_estimator.predict(np.array(data_scaled.drop('label', axis=1).iloc[-1]).reshape(1, -1))
+    print(pred)
+    return 1
 
 
 if __name__ == '__main__':
-    run(sys.argv[1])
+    ticker = 'AMD'
+    run(ticker)

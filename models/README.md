@@ -1,1 +1,0 @@
-For holding serialized models.

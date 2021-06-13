@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 EQUITY_LOOKBACK = 5
 ETF_LOOKBACK = 90
-PREDICTION_WINDOW = 20
+PREDICTION_WINDOW = 10
 YEARS_LOOKBACK = 8
 
 CURRENT_MONTH = datetime.now().month

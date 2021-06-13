@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name="MarketMomentum",
-    version="1.0.0",
+    version="1.1.0",
     author="Lee Cote",
     author_email="brian.lee.cote@gmail.com",
     description="Outlier detection model that stratifies NxM Array into levels of outlierness",
