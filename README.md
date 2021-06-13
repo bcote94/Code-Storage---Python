@@ -15,13 +15,10 @@ Most market models attempt to predict price or price-differential. This is a foo
 
 Classification is a far more robust modeling strategy. It is solid in its assumptions (a stock price at any given point is guaranteed to go up or down), classification of direction irrespective of scale is more robust than predictive forecasting, and it is less susceptible to outliers. The downside being we lose scale (only know if it's going up/down, not by how much), but there are measures to mitigate this, such as deliberately biasing toward Specificity to avoid as many losses as possible.
 
-### Model Assessment
-It's not enough, in my view, to just see how well the model predicts up/down movement. Does it actually make money?
-
-### Learner Strategy
+#### Learner Strategy
 I use a very naive trading strategy to assess the performance of this model. Every time a buy-signal is detected, purchase a single share at current price. Every sell signal, sell the entire position and wait.
 
-### Adversarial Strategy
+#### Adversarial Strategy
 Simply detecting if a model makes money is irrelevant. We need to compare it to another, adversarial trading strategy to see how it performs relative to it. I compare it to Dollar-Cost Averaging. In this method, every 20 day period at the same time, I buy a share no matter what and hold until the end of the trading period.
 
 ### Results
